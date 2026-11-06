@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="Yeelight.TestApp.Views.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:controls="using:Yeelight.TestApp.Controls"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer>
+        <StackPanel
+            MaxWidth="{StaticResource PageMaxWidth}"
+            Padding="{StaticResource PagePadding}"
+            HorizontalAlignment="Left"
+            Spacing="16">
+
+            <StackPanel Spacing="4">
+                <TextBlock Style="{StaticResource TitleTextBlockStyle}" Text="Settings" />
+                <TextBlock
+                    Style="{StaticResource SecondaryBodyStyle}"
+                    Text="The options of the client. A client reads its options once, when it is made, so applying them makes a new client: the old one is disposed, the list of lights is cleared (they are found again when you search or probe) and music mode sessions end." />
+            </StackPanel>
+
+            <InfoBar
+                x:Name="StatusBar"
+                IsClosable="True"
+                IsOpen="False"
+                Severity="Informational" />
+
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="16">
+                    <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="Client" />
+
+                    <controls:WrapPanel HorizontalSpacing="32" VerticalSpacing="16">
+                        <StackPanel Width="340" Spacing="4">
+                            <ToggleSwitch
+                                x:Name="AutoConnectSwitch"
+                                AutomationProperties.Name="Connect to a light as soon as it is found"
+                                Header="Auto connect" />
+                            <TextBlock
+                                Style="{StaticResource SecondaryCaptionStyle}"
+                                Text="Connect to a light when it is found. A light takes four connections and other apps need theirs: a client that sends the odd command can leave this off, and a light then connects when it gets a command." />
+                        </StackPanel>
+                        <StackPanel Width="340" Spacing="4">
+                            <ToggleSwitch
+                                x:Name="RefreshOnConnectSwitch"
+                                AutomationProperties.Name="Read all the properties when a connection is made"
+                                Header="Refresh on connect" />
+                            <TextBlock
+                                Style="{StaticResource SecondaryCaptionStyle}"
+                                Text="Read all the properties of a light each time that a connection is made. A light only tells what changes, so this is how the whole state is known." />
+                        </StackPanel>
+                        <StackPanel Width="340" Spacing="4">
+                            <ToggleSwitch
+                                x:Name="UseBroadcastSwitch"
+                                AutomationProperties.Name="Also send a search as a broadcast"
+                                Header="Use broadcast" />
+                            <TextBlock
+                                Style="{StaticResource SecondaryCaptionStyle}"
+                                Text="Send a search as a broadcast as well as to the multicast group. Some access points never pass the multicast to every WiFi client." />
+                        </StackPanel>
+                    </controls:WrapPanel>
+
+                    <controls:WrapPanel HorizontalSpacing="32" VerticalSpacing="16">
+                        <StackPanel Width="340" Spacing="4">
+                            <NumberBox
+                                x:Name="CommandTimeoutBox"
+                                AutomationProperties.Name="Command timeout in seconds"
+                                Header="Command timeout (seconds)"
+                                LargeChange="1"
+                                Maximum="600"
+                                Minimum="0.1"
+                                SmallChange="0.5"
+                                SpinButtonPlacementMode="Inline" />
+                            <TextBlock Style="{StaticResource SecondaryCaptionStyle}" Text="How long a command waits for the answer of the light before it fails with Timeout." />
+                        </StackPanel>
+                        <StackPanel Width="340" Spacing="4">
+                            <NumberBox
+                                x:Name="ConnectTimeoutBox"
+                                AutomationProperties.Name="Connect timeout in seconds"
+                                Header="Connect timeout (seconds)"
+                                LargeChange="1"
+                                Maximum="600"
+                                Minimum="0.1"
+                                SmallChange="0.5"
+                                SpinButtonPlacementMode="Inline" />
+                            <TextBlock Style="{StaticResource SecondaryCaptionStyle}" Text="How long the client waits for a connection to be made before it tries again." />
+                        </StackPanel>
+                        <StackPanel Width="340" Spacing="4">
+                            <NumberBox
+                                x:Name="KeepAliveBox"
+                                AutomationProperties.Name="Keep-alive interval in seconds"
+                                Header="Keep-alive interval (seconds)"
+                                LargeChange="10"
+                                Maximum="86400"
+                                Minimum="0"
+                                SmallChange="5"
+                                SpinButtonPlacementMode="Inline" />
+                            <TextBlock Style="{StaticResource SecondaryCaptionStyle}" Text="How long a connection may be quiet before the client asks the light something. 0 turns it off." />
+                        </StackPanel>
+                        <StackPanel Width="340" Spacing="4">
+                            <NumberBox
+                                x:Name="CommandsPerMinuteBox"
+                                AutomationProperties.Name="Commands a minute"
+                                Header="Commands a minute"
+                                LargeChange="10"
+                                Maximum="100000"
+                                Minimum="1"
+                                SmallChange="1"
+                                SpinButtonPlacementMode="Inline" />
+                            <TextBlock Style="{StaticResource SecondaryCaptionStyle}" Text="The number of commands a minute on one connection. A light accepts 60 and answers client quota exceeded to more." />
+                        </StackPanel>
+                        <StackPanel Width="340" Spacing="4">
+                            <NumberBox
+                                x:Name="SearchBurstBox"
+                                AutomationProperties.Name="Search burst"
+                                Header="Search burst"
+                                Maximum="20"
+                                Minimum="1"
+                                SmallChange="1"
+                                SpinButtonPlacementMode="Inline" />
+                            <TextBlock Style="{StaticResource SecondaryCaptionStyle}" Text="How many times a search is sent when it is due (a second apart): UDP over WiFi loses packets." />
+                        </StackPanel>
+                        <StackPanel Width="340" Spacing="4">
+                            <NumberBox
+                                x:Name="DiscoveryPortBox"
+                                AutomationProperties.Name="Discovery port"
+                                Header="Discovery port (UDP)"
+                                Maximum="65535"
+                                Minimum="1"
+                                SmallChange="1"
+                                SpinButtonPlacementMode="Inline" />
+                            <TextBlock Style="{StaticResource SecondaryCaptionStyle}" Text="The UDP port that lights are searched on. A light uses 1982; another port is for a simulator or a forwarded port." />
+                        </StackPanel>
+                    </controls:WrapPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button
+                            x:Name="ApplyButton"
+                            AutomationProperties.Name="Apply the settings and make a new client"
+                            Click="ApplyButton_Click"
+                            Content="Apply and make a new client"
+                            Style="{StaticResource AccentButtonStyle}" />
+                        <Button
+                            x:Name="DefaultsButton"
+                            AutomationProperties.Name="Fill in the defaults of the client"
+                            Click="DefaultsButton_Click"
+                            Content="Use the defaults" />
+                        <ProgressRing
+                            x:Name="Busy"
+                            Width="20"
+                            Height="20"
+                            AutomationProperties.Name="Applying the settings"
+                            IsActive="False" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="12">
+                    <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="Appearance" />
+                    <ComboBox
+                        x:Name="ThemeBox"
+                        Width="260"
+                        AutomationProperties.Name="Theme"
+                        Header="Theme"
+                        SelectionChanged="ThemeBox_SelectionChanged" />
+                    <TextBlock Style="{StaticResource SecondaryCaptionStyle}" Text="The theme applies at once. The accent colour is orange in both themes." />
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="8">
+                    <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="Files" />
+                    <TextBlock x:Name="SettingsPathText" Style="{StaticResource SecondaryBodyStyle}" IsTextSelectionEnabled="True" />
+                    <TextBlock x:Name="ExportPathText" Style="{StaticResource SecondaryBodyStyle}" IsTextSelectionEnabled="True" />
+                    <Button
+                        AutomationProperties.Name="Open the folder of the exports"
+                        Click="OpenExportsButton_Click"
+                        Content="Open the folder of the exports" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

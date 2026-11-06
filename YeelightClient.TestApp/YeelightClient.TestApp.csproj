@@ -1,0 +1,63 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The test app of Yeelight Client: a WinUI 3 (Fluent 2) application to try every feature of the library by hand, against real Yeelight
+    lights (or against lights that it simulates in process), and to explore the protocol. It is unpackaged and self-contained, so it runs
+    from a folder on a machine that has neither .NET nor the Windows App SDK installed. It is built and published by
+    .github/workflows/build.yml; it is not part of the NuGet package.
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <RootNamespace>Yeelight.TestApp</RootNamespace>
+    <AssemblyName>YeelightClient.TestApp</AssemblyName>
+    <Product>Yeelight Client Test App</Product>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
+    <Platforms>x86;x64;ARM64</Platforms>
+    <!-- The runtime follows the platform that is built; without one, the architecture of this machine. -->
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' and '$(Platform)' == 'x86'">win-x86</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' and '$(Platform)' == 'x64'">win-x64</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' and '$(Platform)' == 'ARM64'">win-arm64</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString().ToLowerInvariant())</RuntimeIdentifier>
+    <UseWinUI>true</UseWinUI>
+    <WinUISDKReferences>false</WinUISDKReferences>
+    <EnableMsixTooling>true</EnableMsixTooling>
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <SelfContained>true</SelfContained>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <PublishTrimmed>false</PublishTrimmed>
+    <PublishReadyToRun>false</PublishReadyToRun>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Manifest Include="$(ApplicationManifest)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.5.1" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2705" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\YeelightClient\YeelightClient.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The simulated light of the tests: the smoke test (the app started with the option smoke-test, see SmokeTest.cs) finds it with a
+         probe on the loopback, to try the whole way from the pages to the wire and back, and so does the button "Simulated lights" of
+         the Lights page, so that the app can be tried without a light. Nothing that it does leaves the loopback. -->
+    <Compile Include="..\YeelightClient.Tests\TestSupport\SimulatedBulb.cs" Link="SmokeTest\SimulatedBulb.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The icon of the window and of the title bar (the icon of the executable is the ApplicationIcon above). -->
+    <Content Include="Assets\AppIcon.ico" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\AppIcon.png" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

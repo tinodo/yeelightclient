@@ -1,0 +1,587 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<UserControl
+    x:Class="Yeelight.TestApp.Views.LightPanel"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:controls="using:Yeelight.TestApp.Controls"
+    xmlns:models="using:Yeelight.TestApp.Models"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <controls:MasonryPanel
+        MaxColumns="3"
+        MinColumnWidth="440"
+        Spacing="12">
+
+        <!-- Power -->
+        <Border Style="{StaticResource CardStyle}">
+            <StackPanel Spacing="12">
+                <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="Power" />
+                <controls:WrapPanel HorizontalSpacing="8" VerticalSpacing="8">
+                    <ToggleSwitch
+                        x:Name="PowerSwitch"
+                        MinWidth="0"
+                        AutomationProperties.Name="Power"
+                        OffContent="Off"
+                        OnContent="On"
+                        Toggled="PowerSwitch_Toggled" />
+                    <Button
+                        x:Name="ToggleButton"
+                        AutomationProperties.Name="Toggle the light"
+                        Click="ToggleButton_Click"
+                        Content="Toggle" />
+                    <Button
+                        x:Name="TurnOffButton"
+                        AutomationProperties.Name="Turn the light off"
+                        Click="TurnOffButton_Click"
+                        Content="Turn off" />
+                </controls:WrapPanel>
+                <controls:WrapPanel HorizontalSpacing="8" VerticalSpacing="8">
+                    <ComboBox
+                        x:Name="ModeBox"
+                        Width="230"
+                        AutomationProperties.Name="Mode to turn the light on in" />
+                    <Button
+                        x:Name="TurnOnButton"
+                        AutomationProperties.Name="Turn the light on in the mode"
+                        Click="TurnOnButton_Click"
+                        Content="Turn on" />
+                </controls:WrapPanel>
+                <controls:WrapPanel HorizontalSpacing="8" VerticalSpacing="8">
+                    <Button
+                        x:Name="DefaultButton"
+                        AutomationProperties.Name="Set the current state as the default"
+                        Click="DefaultButton_Click"
+                        Content="Set default"
+                        ToolTipService.ToolTip="set_default: the light starts in its current state when the power returns. Only a light that is on accepts it." />
+                </controls:WrapPanel>
+                <TextBlock x:Name="PowerNote" Style="{StaticResource SecondaryCaptionStyle}" Text="Turn on in a mode switches the light on in colour temperature, colour, colour flow or night light mode." />
+            </StackPanel>
+        </Border>
+
+        <!-- Brightness -->
+        <Border Style="{StaticResource CardStyle}">
+            <StackPanel Spacing="8">
+                <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="Brightness" />
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="56" />
+                    </Grid.ColumnDefinitions>
+                    <Slider
+                        x:Name="BrightnessSlider"
+                        AutomationProperties.Name="Brightness, 1 to 100 percent"
+                        Maximum="100"
+                        Minimum="1"
+                        StepFrequency="1"
+                        TickFrequency="10"
+                        TickPlacement="BottomRight"
+                        ValueChanged="BrightnessSlider_ValueChanged"
+                        Value="50" />
+                    <TextBlock
+                        x:Name="BrightnessValue"
+                        Grid.Column="1"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        Style="{StaticResource BodyStrongTextBlockStyle}" />
+                </Grid>
+                <Button
+                    x:Name="ApplyBrightnessButton"
+                    AutomationProperties.Name="Apply the brightness"
+                    Click="ApplyBrightnessButton_Click"
+                    Content="Apply"
+                    Style="{StaticResource AccentButtonStyle}" />
+                <TextBlock x:Name="BrightnessNote" Style="{StaticResource SecondaryCaptionStyle}" Text="set_bright: 1 to 100 percent. Only a light that is on accepts it." />
+            </StackPanel>
+        </Border>
+
+        <!-- Colour temperature -->
+        <Border Style="{StaticResource CardStyle}">
+            <StackPanel Spacing="8">
+                <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="Colour temperature" />
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="64" />
+                    </Grid.ColumnDefinitions>
+                    <Slider
+                        x:Name="TemperatureSlider"
+                        AutomationProperties.Name="Colour temperature in kelvin"
+                        Maximum="6500"
+                        Minimum="1700"
+                        StepFrequency="100"
+                        TickFrequency="800"
+                        TickPlacement="BottomRight"
+                        ValueChanged="TemperatureSlider_ValueChanged"
+                        Value="4000" />
+                    <Border
+                        x:Name="TemperatureSwatch"
+                        Grid.Column="1"
+                        Width="20"
+                        Height="20"
+                        VerticalAlignment="Center"
+                        BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="10" />
+                    <TextBlock
+                        x:Name="TemperatureValue"
+                        Grid.Column="2"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        Style="{StaticResource BodyStrongTextBlockStyle}" />
+                </Grid>
+                <Button
+                    x:Name="ApplyTemperatureButton"
+                    AutomationProperties.Name="Apply the colour temperature"
+                    Click="ApplyTemperatureButton_Click"
+                    Content="Apply"
+                    Style="{StaticResource AccentButtonStyle}" />
+                <TextBlock x:Name="TemperatureNote" Style="{StaticResource SecondaryCaptionStyle}" Text="set_ct_abx: 1700 to 6500 K. The range of a light depends on its model." />
+            </StackPanel>
+        </Border>
+
+        <!-- Colour (RGB) -->
+        <Border Style="{StaticResource CardStyle}">
+            <StackPanel Spacing="8">
+                <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="Colour (RGB)" />
+                <ColorPicker
+                    x:Name="RgbPicker"
+                    HorizontalAlignment="Left"
+                    AutomationProperties.Name="Colour"
+                    ColorChanged="RgbPicker_ColorChanged"
+                    ColorSpectrumShape="Box"
+                    IsAlphaEnabled="False"
+                    IsColorPreviewVisible="False"
+                    IsMoreButtonVisible="True" />
+                <Button
+                    x:Name="ApplyRgbButton"
+                    AutomationProperties.Name="Apply the colour"
+                    Click="ApplyRgbButton_Click"
+                    Content="Apply"
+                    Style="{StaticResource AccentButtonStyle}" />
+                <TextBlock x:Name="RgbNote" Style="{StaticResource SecondaryCaptionStyle}" Text="set_rgb: the colour as red, green and blue. Only a light that is on, and that has colours, accepts it." />
+            </StackPanel>
+        </Border>
+
+        <!-- Colour (HSV) -->
+        <Border Style="{StaticResource CardStyle}">
+            <StackPanel Spacing="8">
+                <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="Colour (hue and saturation)" />
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="84" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="56" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock VerticalAlignment="Center" Text="Hue" />
+                    <Slider
+                        x:Name="HueSlider"
+                        Grid.Column="1"
+                        AutomationProperties.Name="Hue, 0 to 359 degrees"
+                        Maximum="359"
+                        Minimum="0"
+                        ValueChanged="HsvSlider_ValueChanged" />
+                    <TextBlock
+                        x:Name="HueValue"
+                        Grid.Column="2"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        Style="{StaticResource BodyStrongTextBlockStyle}" />
+                    <TextBlock
+                        Grid.Row="1"
+                        VerticalAlignment="Center"
+                        Text="Saturation" />
+                    <Slider
+                        x:Name="SaturationSlider"
+                        Grid.Row="1"
+                        Grid.Column="1"
+                        AutomationProperties.Name="Saturation, 0 to 100 percent"
+                        Maximum="100"
+                        Minimum="0"
+                        ValueChanged="HsvSlider_ValueChanged" />
+                    <TextBlock
+                        x:Name="SaturationValue"
+                        Grid.Row="1"
+                        Grid.Column="2"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        Style="{StaticResource BodyStrongTextBlockStyle}" />
+                </Grid>
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <Button
+                        x:Name="ApplyHsvButton"
+                        AutomationProperties.Name="Apply the hue and the saturation"
+                        Click="ApplyHsvButton_Click"
+                        Content="Apply"
+                        Style="{StaticResource AccentButtonStyle}" />
+                    <Border
+                        x:Name="HsvSwatch"
+                        Width="20"
+                        Height="20"
+                        VerticalAlignment="Center"
+                        BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="10" />
+                </StackPanel>
+                <TextBlock x:Name="HsvNote" Style="{StaticResource SecondaryCaptionStyle}" Text="set_hsv: hue 0 to 359, saturation 0 to 100. Only a light that is on, and that has colours, accepts it." />
+            </StackPanel>
+        </Border>
+
+        <!-- Adjust -->
+        <Border Style="{StaticResource CardStyle}">
+            <StackPanel Spacing="12">
+                <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="Adjust" />
+                <TextBlock Style="{StaticResource SecondaryCaptionStyle}" Text="A step up or down without knowing where the light is now (set_adjust):" />
+                <controls:WrapPanel HorizontalSpacing="8" VerticalSpacing="8">
+                    <ComboBox
+                        x:Name="AdjustActionBox"
+                        Width="130"
+                        AutomationProperties.Name="Direction of the step" />
+                    <ComboBox
+                        x:Name="AdjustPropertyBox"
+                        Width="190"
+                        AutomationProperties.Name="What to adjust" />
+                    <Button
+                        x:Name="AdjustButton"
+                        AutomationProperties.Name="Adjust"
+                        Click="AdjustButton_Click"
+                        Content="Adjust" />
+                </controls:WrapPanel>
+                <TextBlock Style="{StaticResource SecondaryCaptionStyle}" Text="By a percentage of what it is now (adjust_bright, adjust_ct, adjust_color):" />
+                <controls:WrapPanel HorizontalSpacing="8" VerticalSpacing="8">
+                    <NumberBox
+                        x:Name="PercentBox"
+                        Width="130"
+                        AutomationProperties.Name="Percentage, minus 100 to 100"
+                        Header="Percentage"
+                        Maximum="100"
+                        Minimum="-100"
+                        SmallChange="5"
+                        SpinButtonPlacementMode="Compact"
+                        Value="20" />
+                    <NumberBox
+                        x:Name="AdjustDurationBox"
+                        Width="150"
+                        AutomationProperties.Name="Duration in milliseconds, 0 for none"
+                        Header="Duration (ms, 0 = none)"
+                        Maximum="600000"
+                        Minimum="0"
+                        SmallChange="100"
+                        SpinButtonPlacementMode="Compact"
+                        Value="0" />
+                </controls:WrapPanel>
+                <controls:WrapPanel HorizontalSpacing="8" VerticalSpacing="8">
+                    <Button
+                        x:Name="AdjustBrightnessButton"
+                        AutomationProperties.Name="Adjust the brightness by the percentage"
+                        Click="AdjustBrightnessButton_Click"
+                        Content="Brightness" />
+                    <Button
+                        x:Name="AdjustTemperatureButton"
+                        AutomationProperties.Name="Adjust the colour temperature by the percentage"
+                        Click="AdjustTemperatureButton_Click"
+                        Content="Colour temperature" />
+                    <Button
+                        x:Name="AdjustColorButton"
+                        AutomationProperties.Name="Move the colour on"
+                        Click="AdjustColorButton_Click"
+                        Content="Colour" />
+                </controls:WrapPanel>
+                <TextBlock x:Name="AdjustNote" Style="{StaticResource SecondaryCaptionStyle}" Text="The colour can only be adjusted in a circle, and it ignores the percentage: the light decides how far it moves on." />
+            </StackPanel>
+        </Border>
+
+        <!-- Scenes -->
+        <Border Style="{StaticResource CardStyle}">
+            <StackPanel Spacing="12">
+                <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="Scenes" />
+                <ComboBox
+                    x:Name="SceneClassBox"
+                    Width="260"
+                    AutomationProperties.Name="Class of the scene"
+                    SelectionChanged="SceneClassBox_SelectionChanged" />
+                <controls:WrapPanel x:Name="SceneColorPanel" HorizontalSpacing="8" VerticalSpacing="8">
+                    <NumberBox
+                        x:Name="SceneRedBox"
+                        Width="96"
+                        AutomationProperties.Name="Red, 0 to 255"
+                        Header="Red"
+                        Maximum="255"
+                        Minimum="0"
+                        SpinButtonPlacementMode="Compact"
+                        ValueChanged="SceneColorBox_ValueChanged"
+                        Value="255" />
+                    <NumberBox
+                        x:Name="SceneGreenBox"
+                        Width="96"
+                        AutomationProperties.Name="Green, 0 to 255"
+                        Header="Green"
+                        Maximum="255"
+                        Minimum="0"
+                        SpinButtonPlacementMode="Compact"
+                        ValueChanged="SceneColorBox_ValueChanged"
+                        Value="140" />
+                    <NumberBox
+                        x:Name="SceneBlueBox"
+                        Width="96"
+                        AutomationProperties.Name="Blue, 0 to 255"
+                        Header="Blue"
+                        Maximum="255"
+                        Minimum="0"
+                        SpinButtonPlacementMode="Compact"
+                        ValueChanged="SceneColorBox_ValueChanged"
+                        Value="0" />
+                    <Border
+                        x:Name="SceneSwatch"
+                        Width="28"
+                        Height="28"
+                        VerticalAlignment="Bottom"
+                        BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="14" />
+                </controls:WrapPanel>
+                <controls:WrapPanel x:Name="SceneHsvPanel" HorizontalSpacing="8" VerticalSpacing="8">
+                    <NumberBox
+                        x:Name="SceneHueBox"
+                        Width="120"
+                        AutomationProperties.Name="Hue, 0 to 359"
+                        Header="Hue (0 to 359)"
+                        Maximum="359"
+                        Minimum="0"
+                        SpinButtonPlacementMode="Compact"
+                        Value="200" />
+                    <NumberBox
+                        x:Name="SceneSaturationBox"
+                        Width="140"
+                        AutomationProperties.Name="Saturation, 0 to 100"
+                        Header="Saturation (0 to 100)"
+                        Maximum="100"
+                        Minimum="0"
+                        SpinButtonPlacementMode="Compact"
+                        Value="80" />
+                </controls:WrapPanel>
+                <controls:WrapPanel x:Name="SceneKelvinPanel" HorizontalSpacing="8" VerticalSpacing="8">
+                    <NumberBox
+                        x:Name="SceneKelvinBox"
+                        Width="150"
+                        AutomationProperties.Name="Colour temperature, 1700 to 6500 kelvin"
+                        Header="Kelvin (1700 to 6500)"
+                        Maximum="6500"
+                        Minimum="1700"
+                        SmallChange="100"
+                        SpinButtonPlacementMode="Compact"
+                        Value="2700" />
+                </controls:WrapPanel>
+                <controls:WrapPanel x:Name="SceneMinutesPanel" HorizontalSpacing="8" VerticalSpacing="8">
+                    <NumberBox
+                        x:Name="SceneMinutesBox"
+                        Width="150"
+                        AutomationProperties.Name="Minutes until the light is turned off"
+                        Header="Off after (minutes)"
+                        Maximum="1440"
+                        Minimum="1"
+                        SpinButtonPlacementMode="Compact"
+                        Value="15" />
+                </controls:WrapPanel>
+                <NumberBox
+                    x:Name="SceneBrightnessBox"
+                    Width="150"
+                    HorizontalAlignment="Left"
+                    AutomationProperties.Name="Brightness of the scene, 1 to 100"
+                    Header="Brightness (1 to 100)"
+                    Maximum="100"
+                    Minimum="1"
+                    SpinButtonPlacementMode="Compact"
+                    Value="60" />
+                <TextBlock x:Name="SceneFlowText" Style="{StaticResource SecondaryBodyStyle}" Visibility="Collapsed" />
+                <Button
+                    x:Name="SetSceneButton"
+                    AutomationProperties.Name="Set the scene"
+                    Click="SetSceneButton_Click"
+                    Content="Set scene"
+                    Style="{StaticResource AccentButtonStyle}" />
+                <TextBlock x:Name="SceneNote" Style="{StaticResource SecondaryCaptionStyle}" Text="set_scene: unlike the other commands, a scene is accepted by a light that is off: it turns it on." />
+            </StackPanel>
+        </Border>
+
+        <!-- Colour flow -->
+        <Border Style="{StaticResource CardStyle}">
+            <StackPanel Spacing="12">
+                <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="Colour flow" />
+                <TextBlock x:Name="FlowStatus" Style="{StaticResource SecondaryBodyStyle}" />
+                <controls:WrapPanel HorizontalSpacing="8" VerticalSpacing="8">
+                    <ComboBox
+                        x:Name="PresetBox"
+                        Width="200"
+                        AutomationProperties.Name="Preset flow" />
+                    <Button
+                        x:Name="LoadPresetButton"
+                        AutomationProperties.Name="Load the preset into the editor"
+                        Click="LoadPresetButton_Click"
+                        Content="Load preset" />
+                    <Button
+                        x:Name="LoadFromLightButton"
+                        AutomationProperties.Name="Load the flow that the light reports into the editor"
+                        Click="LoadFromLightButton_Click"
+                        Content="Load from the light" />
+                </controls:WrapPanel>
+                <Border
+                    MinHeight="96"
+                    MaxHeight="190"
+                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4">
+                    <Grid>
+                        <ListView
+                            x:Name="StepList"
+                            AutomationProperties.Name="Steps of the flow"
+                            SelectionChanged="StepList_SelectionChanged"
+                            SelectionMode="Single">
+                            <ListView.ItemContainerStyle>
+                                <Style BasedOn="{StaticResource DefaultListViewItemStyle}" TargetType="ListViewItem">
+                                    <Setter Property="MinHeight" Value="32" />
+                                </Style>
+                            </ListView.ItemContainerStyle>
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="models:FlowStepModel">
+                                    <TextBlock
+                                        VerticalAlignment="Center"
+                                        Text="{x:Bind Description}"
+                                        TextTrimming="CharacterEllipsis" />
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                        <TextBlock
+                            x:Name="StepsEmpty"
+                            Margin="12"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            IsHitTestVisible="False"
+                            Style="{StaticResource SecondaryCaptionStyle}"
+                            Text="No steps yet. Load a preset, or add steps below."
+                            TextAlignment="Center" />
+                    </Grid>
+                </Border>
+                <controls:WrapPanel HorizontalSpacing="8" VerticalSpacing="8">
+                    <ComboBox
+                        x:Name="StepKindBox"
+                        Width="170"
+                        AutomationProperties.Name="Kind of the step"
+                        Header="Step"
+                        SelectionChanged="StepKindBox_SelectionChanged" />
+                    <NumberBox
+                        x:Name="StepDurationBox"
+                        Width="130"
+                        AutomationProperties.Name="Duration of the step in milliseconds, 50 or more"
+                        Header="Duration (ms)"
+                        Maximum="3600000"
+                        Minimum="50"
+                        SmallChange="100"
+                        SpinButtonPlacementMode="Compact"
+                        Value="1000" />
+                    <StackPanel x:Name="StepColorPanel" Spacing="0">
+                        <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="Colour" />
+                        <controls:ColorButton x:Name="StepColorButton" AccessibleName="Colour of the step" />
+                    </StackPanel>
+                    <NumberBox
+                        x:Name="StepKelvinBox"
+                        Width="130"
+                        AutomationProperties.Name="Colour temperature of the step in kelvin"
+                        Header="Kelvin"
+                        Maximum="6500"
+                        Minimum="1700"
+                        SmallChange="100"
+                        SpinButtonPlacementMode="Compact"
+                        Value="2700" />
+                    <NumberBox
+                        x:Name="StepBrightnessBox"
+                        Width="120"
+                        AutomationProperties.Name="Brightness of the step, 1 to 100"
+                        Header="Brightness"
+                        Maximum="100"
+                        Minimum="1"
+                        SpinButtonPlacementMode="Compact"
+                        Value="100" />
+                    <CheckBox
+                        x:Name="StepKeepBox"
+                        VerticalAlignment="Bottom"
+                        AutomationProperties.Name="Keep the brightness of the light in this step"
+                        Checked="StepKeepBox_Changed"
+                        Content="Keep brightness"
+                        Unchecked="StepKeepBox_Changed" />
+                </controls:WrapPanel>
+                <controls:WrapPanel HorizontalSpacing="8" VerticalSpacing="8">
+                    <Button
+                        x:Name="AddStepButton"
+                        AutomationProperties.Name="Add the step"
+                        Click="AddStepButton_Click"
+                        Content="Add" />
+                    <Button
+                        x:Name="ReplaceStepButton"
+                        AutomationProperties.Name="Replace the selected step"
+                        Click="ReplaceStepButton_Click"
+                        Content="Replace" />
+                    <Button
+                        x:Name="RemoveStepButton"
+                        AutomationProperties.Name="Remove the selected step"
+                        Click="RemoveStepButton_Click"
+                        Content="Remove" />
+                    <Button
+                        x:Name="UpStepButton"
+                        AutomationProperties.Name="Move the selected step up"
+                        Click="UpStepButton_Click"
+                        Content="Up" />
+                    <Button
+                        x:Name="DownStepButton"
+                        AutomationProperties.Name="Move the selected step down"
+                        Click="DownStepButton_Click"
+                        Content="Down" />
+                    <Button
+                        x:Name="ClearStepsButton"
+                        AutomationProperties.Name="Remove all the steps"
+                        Click="ClearStepsButton_Click"
+                        Content="Clear" />
+                </controls:WrapPanel>
+                <controls:WrapPanel HorizontalSpacing="8" VerticalSpacing="8">
+                    <NumberBox
+                        x:Name="FlowCountBox"
+                        Width="160"
+                        AutomationProperties.Name="Number of steps to run, 0 for no end"
+                        Header="Steps (0 = no end)"
+                        Maximum="100000"
+                        Minimum="0"
+                        SpinButtonPlacementMode="Compact"
+                        ValueChanged="FlowInput_Changed"
+                        Value="0" />
+                    <ComboBox
+                        x:Name="FlowActionBox"
+                        Width="260"
+                        AutomationProperties.Name="What the light does when the flow stops"
+                        Header="When it stops"
+                        SelectionChanged="FlowInput_Changed" />
+                </controls:WrapPanel>
+                <controls:WrapPanel HorizontalSpacing="8" VerticalSpacing="8">
+                    <Button
+                        x:Name="StartFlowButton"
+                        AutomationProperties.Name="Start the flow"
+                        Click="StartFlowButton_Click"
+                        Content="Start"
+                        Style="{StaticResource AccentButtonStyle}" />
+                    <Button
+                        x:Name="StopFlowButton"
+                        AutomationProperties.Name="Stop the flow"
+                        Click="StopFlowButton_Click"
+                        Content="Stop" />
+                </controls:WrapPanel>
+                <TextBlock
+                    x:Name="FlowSummary"
+                    IsTextSelectionEnabled="True"
+                    Style="{StaticResource SecondaryCaptionStyle}" />
+                <TextBlock x:Name="FlowNote" Style="{StaticResource SecondaryCaptionStyle}" Text="start_cf and stop_cf. Only a light that is on accepts a flow." />
+            </StackPanel>
+        </Border>
+    </controls:MasonryPanel>
+</UserControl>

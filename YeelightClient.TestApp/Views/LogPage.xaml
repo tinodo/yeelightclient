@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="Yeelight.TestApp.Views.LogPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:controls="using:Yeelight.TestApp.Controls"
+    xmlns:local="using:Yeelight.TestApp.Views"
+    xmlns:svc="using:Yeelight.TestApp.Services"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Page.Resources>
+        <DataTemplate x:Key="EntryTemplate" x:DataType="svc:LogEntry">
+            <Grid Padding="0,2" ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="92" />
+                    <ColumnDefinition Width="20" />
+                    <ColumnDefinition Width="36" />
+                    <ColumnDefinition Width="64" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock
+                    VerticalAlignment="Center"
+                    Style="{StaticResource CodeTextStyle}"
+                    Text="{x:Bind TimeText}" />
+                <TextBlock
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    Text="{x:Bind Direction}" />
+                <TextBlock
+                    Grid.Column="2"
+                    VerticalAlignment="Center"
+                    Style="{StaticResource SecondaryCaptionStyle}"
+                    Text="{x:Bind LevelText}" />
+                <TextBlock
+                    Grid.Column="3"
+                    VerticalAlignment="Center"
+                    Style="{StaticResource CodeTextStyle}"
+                    Text="{x:Bind LightText}"
+                    TextTrimming="CharacterEllipsis" />
+                <TextBlock
+                    Grid.Column="4"
+                    VerticalAlignment="Center"
+                    Text="{x:Bind Title}"
+                    TextTrimming="CharacterEllipsis"
+                    TextWrapping="NoWrap" />
+                <TextBlock
+                    Grid.Column="5"
+                    VerticalAlignment="Center"
+                    Style="{StaticResource SecondaryCaptionStyle}"
+                    Text="{x:Bind ElapsedText}" />
+            </Grid>
+        </DataTemplate>
+
+        <DataTemplate x:Key="ProblemTemplate" x:DataType="svc:LogEntry">
+            <Grid Padding="0,2" ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="92" />
+                    <ColumnDefinition Width="20" />
+                    <ColumnDefinition Width="36" />
+                    <ColumnDefinition Width="64" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock
+                    VerticalAlignment="Center"
+                    Style="{StaticResource CodeTextStyle}"
+                    Text="{x:Bind TimeText}" />
+                <TextBlock
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                    Text="{x:Bind Direction}" />
+                <TextBlock
+                    Grid.Column="2"
+                    VerticalAlignment="Center"
+                    Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                    Style="{StaticResource CaptionTextBlockStyle}"
+                    Text="{x:Bind LevelText}" />
+                <TextBlock
+                    Grid.Column="3"
+                    VerticalAlignment="Center"
+                    Style="{StaticResource CodeTextStyle}"
+                    Text="{x:Bind LightText}"
+                    TextTrimming="CharacterEllipsis" />
+                <TextBlock
+                    Grid.Column="4"
+                    VerticalAlignment="Center"
+                    Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                    Text="{x:Bind Title}"
+                    TextTrimming="CharacterEllipsis"
+                    TextWrapping="NoWrap" />
+                <TextBlock
+                    Grid.Column="5"
+                    VerticalAlignment="Center"
+                    Style="{StaticResource SecondaryCaptionStyle}"
+                    Text="{x:Bind ElapsedText}" />
+            </Grid>
+        </DataTemplate>
+
+        <local:LogTemplateSelector
+            x:Key="EntrySelector"
+            Normal="{StaticResource EntryTemplate}"
+            Problem="{StaticResource ProblemTemplate}" />
+    </Page.Resources>
+
+    <Grid Padding="24,16,24,24" RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Spacing="4">
+            <TextBlock Style="{StaticResource TitleTextBlockStyle}" Text="Log" />
+            <TextBlock
+                Style="{StaticResource SecondaryBodyStyle}"
+                Text="Everything that the client logs: every message that went to a light (→) and came from one (←), with the id of the light and how long the answer took, and the connections, the searches and the warnings. Messages are kept whole. Answers that failed and warnings are red." />
+        </StackPanel>
+
+        <controls:WrapPanel
+            Grid.Row="1"
+            HorizontalSpacing="8"
+            VerticalSpacing="8">
+            <ComboBox
+                x:Name="LevelBox"
+                Width="220"
+                AutomationProperties.Name="The lowest level that is shown"
+                SelectionChanged="Filter_Changed" />
+            <ComboBox
+                x:Name="LightBox"
+                Width="230"
+                AutomationProperties.Name="Show the entries of one light"
+                SelectionChanged="Filter_Changed" />
+            <AutoSuggestBox
+                x:Name="FilterBox"
+                Width="230"
+                AutomationProperties.Name="Filter the log"
+                PlaceholderText="Filter by text"
+                QueryIcon="Find"
+                TextChanged="FilterBox_TextChanged" />
+            <ToggleButton
+                x:Name="SentButton"
+                AutomationProperties.Name="Show the messages that were sent"
+                Click="Filter_Click"
+                Content="Sent"
+                IsChecked="True" />
+            <ToggleButton
+                x:Name="ReceivedButton"
+                AutomationProperties.Name="Show the messages that were received"
+                Click="Filter_Click"
+                Content="Received"
+                IsChecked="True" />
+            <ToggleButton
+                x:Name="ClientButton"
+                AutomationProperties.Name="Show what the client reported"
+                Click="Filter_Click"
+                Content="Client"
+                IsChecked="True" />
+            <ToggleButton
+                x:Name="FollowButton"
+                AutomationProperties.Name="Follow the newest entry"
+                Content="Follow"
+                IsChecked="True"
+                ToolTipService.ToolTip="Scrolls to the newest entry as it arrives, as long as no entry is selected" />
+            <ToggleButton
+                x:Name="PauseButton"
+                AutomationProperties.Name="Pause the list"
+                Click="PauseButton_Click"
+                Content="Pause"
+                ToolTipService.ToolTip="Stops adding entries to the list. They are still recorded, and show when you resume." />
+            <Button
+                AutomationProperties.Name="Clear the log"
+                Click="ClearButton_Click"
+                Content="Clear" />
+            <Button
+                x:Name="CopyAllButton"
+                AutomationProperties.Name="Copy the entries that are shown"
+                Click="CopyAllButton_Click"
+                Content="Copy" />
+            <Button
+                AutomationProperties.Name="Export the entries that are shown as JSON lines"
+                Click="ExportButton_Click"
+                Content="Export (JSON lines)" />
+            <TextBlock
+                x:Name="CountText"
+                VerticalAlignment="Center"
+                Style="{StaticResource SecondaryCaptionStyle}" />
+        </controls:WrapPanel>
+
+        <InfoBar
+            x:Name="ExportBar"
+            Grid.Row="2"
+            IsOpen="False"
+            Severity="Success">
+            <InfoBar.ActionButton>
+                <Button Click="ShowInFolderButton_Click" Content="Show in folder" />
+            </InfoBar.ActionButton>
+        </InfoBar>
+
+        <controls:ResponsiveSplit Grid.Row="3" Breakpoint="860">
+            <Border Padding="0" Style="{StaticResource CardStyle}">
+                <Grid>
+                    <ListView
+                        x:Name="EntryList"
+                        AutomationProperties.Name="Log entries"
+                        ItemTemplateSelector="{StaticResource EntrySelector}"
+                        ItemsSource="{x:Bind Visible}"
+                        SelectionChanged="EntryList_SelectionChanged"
+                        SelectionMode="Single">
+                        <ListView.ItemContainerStyle>
+                            <Style BasedOn="{StaticResource DefaultListViewItemStyle}" TargetType="ListViewItem">
+                                <Setter Property="MinHeight" Value="28" />
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                    </ListView>
+                    <TextBlock
+                        x:Name="EmptyText"
+                        Margin="24"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        IsHitTestVisible="False"
+                        Style="{StaticResource SecondaryBodyStyle}"
+                        Text="Nothing to show. Search for lights, probe an address or start the simulated lights on the Lights page, and send a command: every message appears here."
+                        TextAlignment="Center" />
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource CardStyle}">
+                <Grid RowSpacing="12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <StackPanel Spacing="2">
+                        <TextBlock
+                            x:Name="DetailTitle"
+                            Style="{StaticResource BodyStrongTextBlockStyle}"
+                            Text="Select an entry"
+                            TextWrapping="Wrap" />
+                        <TextBlock x:Name="DetailMeta" Style="{StaticResource SecondaryCaptionStyle}" />
+                    </StackPanel>
+                    <TextBox
+                        x:Name="DetailBox"
+                        Grid.Row="1"
+                        AutomationProperties.Name="Entry data"
+                        IsReadOnly="True"
+                        Style="{StaticResource CodeTextBoxStyle}" />
+                    <Button
+                        x:Name="CopyButton"
+                        Grid.Row="2"
+                        HorizontalAlignment="Left"
+                        AutomationProperties.Name="Copy the entry"
+                        Click="CopyButton_Click"
+                        Content="Copy" />
+                </Grid>
+            </Border>
+        </controls:ResponsiveSplit>
+    </Grid>
+</Page>

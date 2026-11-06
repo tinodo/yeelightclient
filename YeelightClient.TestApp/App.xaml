@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Application
+    x:Class="Yeelight.TestApp.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!--
+                The brand accent of Yeelight Client: orange (#e8590c) on the light theme, a lighter orange (#ffa94d) on the dark theme.
+                The controls of Fluent 2 take their accent from these resources: a filled accent control uses Dark1 on the light theme and
+                Light2 on the dark theme, accent text uses Dark2 (light) and Light3 (dark). The other shades are derived from the same hue.
+            -->
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Light">
+                    <Color x:Key="SystemAccentColor">#E8590C</Color>
+                    <Color x:Key="SystemAccentColorLight1">#F27A33</Color>
+                    <Color x:Key="SystemAccentColorLight2">#F79A63</Color>
+                    <Color x:Key="SystemAccentColorLight3">#FBBE98</Color>
+                    <Color x:Key="SystemAccentColorDark1">#E8590C</Color>
+                    <Color x:Key="SystemAccentColorDark2">#BE4709</Color>
+                    <Color x:Key="SystemAccentColorDark3">#923706</Color>
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Dark">
+                    <Color x:Key="SystemAccentColor">#FFA94D</Color>
+                    <Color x:Key="SystemAccentColorLight1">#FFBA6F</Color>
+                    <Color x:Key="SystemAccentColorLight2">#FFA94D</Color>
+                    <Color x:Key="SystemAccentColorLight3">#FFC078</Color>
+                    <Color x:Key="SystemAccentColorDark1">#E8590C</Color>
+                    <Color x:Key="SystemAccentColorDark2">#BE4709</Color>
+                    <Color x:Key="SystemAccentColorDark3">#923706</Color>
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+
+            <!--
+                Fluent 2 on a 4 px grid: spacing is a multiple of 4, controls have 4 px corners and surfaces 8 px, text uses the
+                type ramp of the Windows App SDK (Segoe UI Variable), and every color is a theme resource, so that the app
+                follows the light, dark and high contrast themes without a line of code. The only colors that are not theme
+                resources are the swatches that show the colour of a light.
+            -->
+            <FontFamily x:Key="CodeFontFamily">Cascadia Mono, Consolas, Courier New</FontFamily>
+            <x:Double x:Key="PageMaxWidth">1100</x:Double>
+            <Thickness x:Key="PagePadding">24,16,24,24</Thickness>
+
+            <!-- A surface for a group of related controls. -->
+            <Style x:Key="CardStyle" TargetType="Border">
+                <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+                <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="Padding" Value="16" />
+            </Style>
+
+            <!-- A small label with a quiet background, for the names of the methods that a light supports. -->
+            <Style x:Key="ChipStyle" TargetType="Border">
+                <Setter Property="Background" Value="{ThemeResource ControlFillColorSecondaryBrush}" />
+                <Setter Property="BorderBrush" Value="{ThemeResource ControlStrokeColorDefaultBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="4" />
+                <Setter Property="Padding" Value="6,2" />
+            </Style>
+
+            <!-- Secondary text in the caption size, for hints and descriptions. -->
+            <Style x:Key="SecondaryCaptionStyle" TargetType="TextBlock" BasedOn="{StaticResource CaptionTextBlockStyle}">
+                <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+                <Setter Property="TextWrapping" Value="Wrap" />
+            </Style>
+
+            <!-- Secondary text in the body size. -->
+            <Style x:Key="SecondaryBodyStyle" TargetType="TextBlock" BasedOn="{StaticResource BodyTextBlockStyle}">
+                <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+                <Setter Property="TextWrapping" Value="Wrap" />
+            </Style>
+
+            <!-- A number or an identifier, where the digits have to line up. -->
+            <Style x:Key="CodeTextStyle" TargetType="TextBlock" BasedOn="{StaticResource CaptionTextBlockStyle}">
+                <Setter Property="FontFamily" Value="{StaticResource CodeFontFamily}" />
+            </Style>
+
+            <!-- Monospaced, scrolling text for JSON and logs. -->
+            <Style x:Key="CodeTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource DefaultTextBoxStyle}">
+                <Setter Property="FontFamily" Value="{StaticResource CodeFontFamily}" />
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="AcceptsReturn" Value="True" />
+                <Setter Property="TextWrapping" Value="NoWrap" />
+                <Setter Property="IsSpellCheckEnabled" Value="False" />
+                <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto" />
+                <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

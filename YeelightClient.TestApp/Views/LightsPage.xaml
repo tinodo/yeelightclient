@@ -1,0 +1,348 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="Yeelight.TestApp.Views.LightsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:controls="using:Yeelight.TestApp.Controls"
+    xmlns:local="using:Yeelight.TestApp.Views"
+    xmlns:models="using:Yeelight.TestApp.Models"
+    xmlns:session="using:Yeelight.TestApp.Session"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer
+        x:Name="Scroller"
+        HorizontalScrollBarVisibility="Disabled"
+        SizeChanged="Scroller_SizeChanged"
+        VerticalScrollBarVisibility="Auto">
+    <Grid
+        x:Name="PageGrid"
+        Padding="24,16,24,24"
+        RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Spacing="4">
+            <TextBlock Style="{StaticResource TitleTextBlockStyle}" Text="Lights" />
+            <TextBlock
+                Style="{StaticResource SecondaryBodyStyle}"
+                Text="The lights that the client of this app found, live: what each one is, whether there is a connection to it, and what it shows. Nothing is sent to the network until you press one of the buttons below." />
+        </StackPanel>
+
+        <InfoBar
+            x:Name="NoticeBar"
+            Grid.Row="1"
+            IsClosable="True"
+            IsOpen="False"
+            Severity="Informational" />
+
+        <Border Grid.Row="2" Style="{StaticResource CardStyle}">
+            <StackPanel Spacing="12">
+                <controls:WrapPanel HorizontalSpacing="16" VerticalSpacing="8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button
+                            x:Name="SearchButton"
+                            AutomationProperties.Name="Search now"
+                            Click="SearchButton_Click"
+                            Style="{StaticResource AccentButtonStyle}"
+                            ToolTipService.ToolTip="Sends a search now, and waits four seconds for the answers (F5)">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon FontSize="16" Glyph="&#xE721;" />
+                                <TextBlock Text="Search now" />
+                            </StackPanel>
+                            <Button.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="F5" />
+                                <KeyboardAccelerator Key="R" Modifiers="Control" />
+                            </Button.KeyboardAccelerators>
+                        </Button>
+                        <ProgressRing
+                            x:Name="SearchRing"
+                            Width="20"
+                            Height="20"
+                            AutomationProperties.Name="Searching"
+                            IsActive="False" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <ToggleSwitch
+                            x:Name="SearchEverySwitch"
+                            AutomationProperties.Name="Search every number of seconds"
+                            OffContent="Search every"
+                            OnContent="Search every"
+                            Toggled="SearchEverySwitch_Toggled"
+                            ToolTipService.ToolTip="Searches now and then again every number of seconds, and takes over the lights that answer" />
+                        <NumberBox
+                            x:Name="IntervalBox"
+                            Width="110"
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name="Seconds between two searches"
+                            Maximum="86400"
+                            Minimum="1"
+                            SmallChange="5"
+                            SpinButtonPlacementMode="Inline"
+                            ValueChanged="IntervalBox_ValueChanged" />
+                        <TextBlock VerticalAlignment="Center" Text="seconds" />
+                    </StackPanel>
+
+                    <ToggleSwitch
+                        x:Name="ListenSwitch"
+                        AutomationProperties.Name="Listen to the announcements of the lights"
+                        OffContent="Listen"
+                        OnContent="Listen"
+                        Toggled="ListenSwitch_Toggled"
+                        ToolTipService.ToolTip="Listens to what lights say by themselves. It joins the multicast group on UDP port 1982." />
+                </controls:WrapPanel>
+
+                <controls:WrapPanel HorizontalSpacing="16" VerticalSpacing="8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBox
+                            x:Name="ProbeBox"
+                            Width="230"
+                            AutomationProperties.Name="Address of a light to probe"
+                            KeyDown="ProbeBox_KeyDown"
+                            PlaceholderText="Address of a light, 192.168.1.50"
+                            ToolTipService.ToolTip="An IP address. Add the UDP port after a colon for a light behind a forwarded port, or a simulator (127.0.0.1:55000)." />
+                        <Button
+                            x:Name="ProbeButton"
+                            AutomationProperties.Name="Probe the address"
+                            Click="ProbeButton_Click"
+                            Content="Probe address"
+                            ToolTipService.ToolTip="Sends one search straight to that address and waits three seconds for the answer" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <DropDownButton
+                            x:Name="SimulatedButton"
+                            AutomationProperties.Name="Simulated lights"
+                            Content="Simulated lights">
+                            <DropDownButton.Flyout>
+                                <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                                    <MenuFlyoutItem
+                                        x:Name="StartAllItem"
+                                        Click="SimulatedItem_Click"
+                                        Tag="all"
+                                        Text="Start all three" />
+                                    <MenuFlyoutSeparator />
+                                    <MenuFlyoutItem
+                                        Click="SimulatedItem_Click"
+                                        Tag="color"
+                                        Text="Start a colour bulb" />
+                                    <MenuFlyoutItem
+                                        Click="SimulatedItem_Click"
+                                        Tag="white"
+                                        Text="Start a white bulb (no colours)" />
+                                    <MenuFlyoutItem
+                                        Click="SimulatedItem_Click"
+                                        Tag="ceiling"
+                                        Text="Start a ceiling light (with a background light)" />
+                                </MenuFlyout>
+                            </DropDownButton.Flyout>
+                        </DropDownButton>
+                        <Button
+                            x:Name="StopSimulatedButton"
+                            AutomationProperties.Name="Stop the simulated lights"
+                            Click="StopSimulatedButton_Click"
+                            Content="Stop simulated lights" />
+                    </StackPanel>
+                </controls:WrapPanel>
+
+                <TextBlock
+                    Style="{StaticResource SecondaryCaptionStyle}"
+                    Text="Search now, Search every and Listen use UDP on port 1982 (to the multicast group of the lights and as a broadcast); Probe address sends one search to the address that you type. The simulated lights live inside this app, on the loopback address (127.0.0.1): nothing that they do leaves this computer, so anybody can try the app without a light." />
+            </StackPanel>
+        </Border>
+
+        <controls:ResponsiveSplit Grid.Row="3" Breakpoint="860" PrimaryShare="0.55">
+            <Border Padding="0" Style="{StaticResource CardStyle}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBlock
+                        x:Name="CountText"
+                        Margin="16,12,16,4"
+                        Style="{StaticResource SecondaryCaptionStyle}" />
+                    <ListView
+                        x:Name="LightList"
+                        Grid.Row="1"
+                        AutomationProperties.Name="Lights"
+                        DoubleTapped="LightList_DoubleTapped"
+                        ItemsSource="{x:Bind Items}"
+                        KeyDown="LightList_KeyDown"
+                        SelectionChanged="LightList_SelectionChanged"
+                        SelectionMode="Single">
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="session:LightItem">
+                                <Grid
+                                    Padding="0,6"
+                                    AutomationProperties.Name="{x:Bind AutomationName, Mode=OneWay}"
+                                    ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid
+                                        Width="12"
+                                        Height="12"
+                                        VerticalAlignment="Center"
+                                        ToolTipService.ToolTip="{x:Bind ConnectionText, Mode=OneWay}">
+                                        <Ellipse Fill="{ThemeResource SystemFillColorSuccessBrush}" Visibility="{x:Bind local:Fmt.Visible(IsConnected), Mode=OneWay}" />
+                                        <Ellipse Fill="{ThemeResource TextFillColorDisabledBrush}" Visibility="{x:Bind local:Fmt.Hidden(IsConnected), Mode=OneWay}" />
+                                    </Grid>
+                                    <Border
+                                        Grid.Column="1"
+                                        Width="26"
+                                        Height="26"
+                                        VerticalAlignment="Center"
+                                        Background="{x:Bind SwatchBrush, Mode=OneWay}"
+                                        BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="13"
+                                        Opacity="{x:Bind SwatchOpacity, Mode=OneWay}" />
+                                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock
+                                                Style="{StaticResource BodyStrongTextBlockStyle}"
+                                                Text="{x:Bind Title, Mode=OneWay}"
+                                                TextTrimming="CharacterEllipsis" />
+                                            <Border
+                                                VerticalAlignment="Center"
+                                                Style="{StaticResource ChipStyle}"
+                                                Visibility="{x:Bind SimulatedVisibility}">
+                                                <TextBlock FontSize="11" Text="simulated" />
+                                            </Border>
+                                        </StackPanel>
+                                        <TextBlock
+                                            Style="{StaticResource SecondaryCaptionStyle}"
+                                            Text="{x:Bind Subtitle, Mode=OneWay}"
+                                            TextTrimming="CharacterEllipsis"
+                                            TextWrapping="NoWrap" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="3" VerticalAlignment="Center">
+                                        <TextBlock
+                                            HorizontalAlignment="Right"
+                                            Text="{x:Bind StateText, Mode=OneWay}" />
+                                        <TextBlock
+                                            HorizontalAlignment="Right"
+                                            Style="{StaticResource SecondaryCaptionStyle}"
+                                            Text="{x:Bind LastSeenText, Mode=OneWay}" />
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                    <StackPanel
+                        x:Name="EmptyPanel"
+                        Grid.Row="1"
+                        Margin="24"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="12">
+                        <TextBlock
+                            MaxWidth="460"
+                            Style="{StaticResource SecondaryBodyStyle}"
+                            Text="No lights yet. Press Search now, switch on Search every or Listen, probe the address of a light, or start the simulated lights to try the app without one. Every light needs LAN Control switched on in the Yeelight app (see Help)."
+                            TextAlignment="Center" />
+                        <Button
+                            HorizontalAlignment="Center"
+                            AutomationProperties.Name="Start the three simulated lights"
+                            Click="TrySimulatedButton_Click"
+                            Content="Try the simulated lights" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource CardStyle}">
+                <Grid RowSpacing="12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <StackPanel Spacing="2">
+                        <TextBlock
+                            x:Name="DetailTitle"
+                            Style="{StaticResource BodyStrongTextBlockStyle}"
+                            Text="Select a light"
+                            TextWrapping="Wrap" />
+                        <TextBlock x:Name="DetailSubtitle" Style="{StaticResource SecondaryCaptionStyle}" />
+                    </StackPanel>
+                    <controls:WrapPanel
+                        Grid.Row="1"
+                        HorizontalSpacing="8"
+                        VerticalSpacing="8">
+                        <Button
+                            x:Name="OpenButton"
+                            AutomationProperties.Name="Open the light in the Control page"
+                            Click="OpenButton_Click"
+                            Content="Open"
+                            Style="{StaticResource AccentButtonStyle}"
+                            ToolTipService.ToolTip="Opens the light in the Control page (Enter, or double click)" />
+                        <Button
+                            x:Name="ForgetButton"
+                            AutomationProperties.Name="Forget the light"
+                            Click="ForgetButton_Click"
+                            Content="Forget"
+                            ToolTipService.ToolTip="Closes the connection and drops the light. It comes back when it answers a search again." />
+                        <Button
+                            x:Name="CopyButton"
+                            AutomationProperties.Name="Copy the details of the light"
+                            Click="CopyButton_Click"
+                            Content="Copy details" />
+                    </controls:WrapPanel>
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Padding="0,0,12,0" Spacing="16">
+                            <ItemsControl x:Name="PropertyList" AutomationProperties.Name="Properties of the light">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="models:PropertyRow">
+                                        <Grid Padding="0,2" ColumnSpacing="12">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="170" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Style="{StaticResource SecondaryBodyStyle}" Text="{x:Bind Name}" />
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                IsTextSelectionEnabled="True"
+                                                Text="{x:Bind Value}"
+                                                TextWrapping="Wrap" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <StackPanel x:Name="MethodsPanel" Spacing="8">
+                                <TextBlock
+                                    x:Name="MethodsTitle"
+                                    Style="{StaticResource BodyStrongTextBlockStyle}"
+                                    Text="Methods that the light lists" />
+                                <ItemsControl x:Name="MethodList" AutomationProperties.Name="Methods that the light supports">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <controls:WrapPanel HorizontalSpacing="6" VerticalSpacing="6" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="x:String">
+                                            <Border Style="{StaticResource ChipStyle}">
+                                                <TextBlock
+                                                    FontFamily="{StaticResource CodeFontFamily}"
+                                                    FontSize="12"
+                                                    Text="{x:Bind}" />
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </controls:ResponsiveSplit>
+    </Grid>
+    </ScrollViewer>
+</Page>

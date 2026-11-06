@@ -128,7 +128,9 @@ catch (OperationCanceledException)
 | [`KeepAliveInterval`](xref:Yeelight.YeelightClientOptions.KeepAliveInterval) | 60 seconds | How long a connection may be quiet before the client asks the light something, to find out whether it is still there. `TimeSpan.Zero` turns it off. |
 
 Two more waits are fixed. A command waits up to two seconds for a connection that is being made (after a loss, or at the start), and up to two
-seconds for its turn under the limit of commands. The options are read when the client is made:
+seconds for its turn under the limit of commands. Both end at once, with [`NotConnected`](xref:Yeelight.YeelightFailureKind), when the client is
+disposed, or the light is disconnected or forgotten: a command is never kept waiting for a connection that is being closed. The options are read
+when the client is made:
 
 ```csharp
 var options = new YeelightClientOptions

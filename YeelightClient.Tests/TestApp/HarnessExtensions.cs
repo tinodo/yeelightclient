@@ -14,12 +14,16 @@ namespace Yeelight.Tests.TestApp
         /// does right after the start: it carries the state from before, and it would undo a change that the test made.
         /// </summary>
         /// <param name="harness">The client and the simulated light.</param>
-        /// <returns>A task that ends when the answer has come.</returns>
-        public static Task SettleAsync(this Harness harness)
+        /// <returns>A task that ends when the answer has come, and has been taken over.</returns>
+        public static async Task SettleAsync(this Harness harness)
         {
-            return Wait.UntilAsync(
+            await Wait.UntilAsync(
                 () => harness.Logger.Entries.Any(entry => entry.Message.Contains("Received: ", StringComparison.Ordinal) && entry.Message.Contains("\"result\":[\"on\"", StringComparison.Ordinal)),
                 "the first read of the properties");
+
+            // The line is logged before the answer is taken over, on the thread that reads the connection, so the state may not be there yet.
+            // That thread is done with an answer before it reads the next line: when the answer to a second read is here, the first is taken over.
+            await harness.Device.GetPropertiesAsync([YeelightProperties.Power]);
         }
     }
 }

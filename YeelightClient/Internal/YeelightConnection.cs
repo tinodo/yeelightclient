@@ -57,7 +57,8 @@ namespace Yeelight
     /// <remarks>
     /// A supervisor loop connects, reads and reconnects for as long as the connection lives. A close by the device, a failed write,
     /// a device that stops answering and a new address all end in the same way: the pending commands get a failure at once (they
-    /// do not sit out their time limit), and the supervisor connects again after a wait that grows with every failure.
+    /// do not sit out their time limit), and the supervisor connects again after a wait that grows with every failure. Disposing the
+    /// connection ends every wait of a command, for the connection and for its turn included.
     /// </remarks>
     internal sealed class YeelightConnection : IAsyncDisposable
     {
@@ -215,16 +216,21 @@ namespace Yeelight
         /// <summary>
         /// Waits until there is a connection.
         /// </summary>
-        /// <returns><c>true</c> when the connection is there, <c>false</c> when it did not come in time.</returns>
+        /// <returns><c>true</c> when the connection is there, <c>false</c> when it did not come in time (or this was disposed meanwhile).</returns>
         public async Task<bool> WaitConnectedAsync(TimeSpan timeout, CancellationToken cancellationToken = default)
         {
             this.Start();
+            using var closing = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, this._lifetime.Token);
             try
             {
-                await this.Ready().WaitAsync(timeout, cancellationToken).ConfigureAwait(false);
+                await this.Ready().WaitAsync(timeout, closing.Token).ConfigureAwait(false);
                 return true;
             }
             catch (TimeoutException)
+            {
+                return false;
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
                 return false;
             }
@@ -251,6 +257,21 @@ namespace Yeelight
 
             this.Start();
 
+            // Every wait of a command ends when the connection is disposed: a caller that waits for the connection, or for its turn, is not
+            // kept waiting for as long as it was willing to.
+            using var closing = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, this._lifetime.Token);
+            try
+            {
+                return await this.SendUntilClosedAsync(method, parameters, closing.Token, onAnswer).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                return YeelightResult.Failed(YeelightFailureKind.NotConnected, "The connection was closed.");
+            }
+        }
+
+        private async Task<YeelightResult> SendUntilClosedAsync(string method, IReadOnlyList<object?>? parameters, CancellationToken cancellationToken, Action<YeelightResult>? onAnswer)
+        {
             LiveConnection live;
             try
             {

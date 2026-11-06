@@ -44,8 +44,7 @@ namespace Yeelight.Tests.Chaos
             Assert.True(result.Calls["success"] > 0, $"No command succeeded in the whole run: {result.Calls}.");
             Assert.True(result.Connections >= 10, $"The proxy accepted {result.Connections} connections only: the chaos is not what it should be.");
             Assert.True(result.MaxCallTime < Longest, $"A call took {result.MaxCallTime.TotalSeconds:0.0} seconds, and none may take {Longest.TotalSeconds:0.#}.");
-            var leftOver = unobserved.Collect();
-            Assert.True(leftOver.Count == 0, "Tasks failed and nobody looked: " + string.Join(" | ", leftOver.Take(5).Select(exception => exception.GetType().Name + ": " + exception.Message)));
+            unobserved.AssertNone();
             SoakTests.AssertGivenBack(before, after);
         }
 

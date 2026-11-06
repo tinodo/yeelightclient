@@ -270,7 +270,7 @@ namespace Yeelight.Tests.Unit
             Assert.Equal("99", device.FirmwareVersion);
             await device.ConnectAsync();
             await Wait.UntilAsync(() => other.ConnectionCount == 1, "the connection to the new address of the light");
-            Assert.Equal(0, harness.Bulb.ClientCount);
+            await Wait.UntilAsync(() => harness.Bulb.ClientCount == 0, "the first light to see that its connection was closed");
         }
 
         [Fact]

@@ -39,7 +39,13 @@ namespace Yeelight.Tests.TestSupport
             var client = TestClients.Create(options?.Invoke(bulb.DiscoveryPort) ?? new YeelightClientOptions { DiscoveryPort = bulb.DiscoveryPort }, logger, searchTarget: bulb);
             try
             {
-                var device = await client.ProbeAsync(IPAddress.Loopback);
+                // A search is a UDP datagram: on a machine that is busy the light can be slow to answer, so a probe that finds nothing is made again.
+                YeelightDevice? device = null;
+                for (var attempt = 0; attempt < 3 && device is null; attempt++)
+                {
+                    device = await client.ProbeAsync(IPAddress.Loopback);
+                }
+
                 if (device is null)
                 {
                     throw new InvalidOperationException("The simulated light did not answer the search.");

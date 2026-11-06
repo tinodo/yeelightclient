@@ -175,6 +175,7 @@ namespace Yeelight.Tests.TestApp
         public async Task TheDetailsOfACeilingLight_AlsoHoldItsBackgroundLight()
         {
             await using var harness = await Harness.StartAsync(new SimulatedBulbOptions { HasBackground = true, Model = "ceiling" });
+            await harness.SettleAsync();
 
             var rows = LightFormat.Properties(harness.Device, DateTimeOffset.Now).ToDictionary(row => row.Name, row => row.Value);
 

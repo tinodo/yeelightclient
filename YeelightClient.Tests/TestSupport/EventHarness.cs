@@ -48,7 +48,15 @@ namespace Yeelight.Tests.TestSupport
             try
             {
                 configure?.Invoke(client);
-                var device = await client.ProbeAsync(IPAddress.Loopback) ?? throw new InvalidOperationException("The simulated light did not answer the search.");
+
+                // A search is a UDP datagram: on a machine that is busy the light can be slow to answer, so a probe that finds nothing is made again.
+                YeelightDevice? found = null;
+                for (var attempt = 0; attempt < 3 && found is null; attempt++)
+                {
+                    found = await client.ProbeAsync(IPAddress.Loopback);
+                }
+
+                var device = found ?? throw new InvalidOperationException("The simulated light did not answer the search.");
                 await device.ConnectAsync();
                 await log.WaitUntilAsync(events => events.Any(e => e.Kind == "State" && e.Property == nameof(YeelightDevice.IsConnected)), "the event that says that the device is connected");
 

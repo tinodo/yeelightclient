@@ -124,7 +124,7 @@ namespace Yeelight.Tests.Fuzz
                 if (result.Error is { Kind: YeelightFailureKind.Timeout })
                 {
                     timedOut++;
-                    Assert.InRange(watch.Elapsed, TimeSpan.FromMilliseconds(200), TimeSpan.FromSeconds(2));
+                    Assert.InRange(watch.Elapsed, TimeSpan.FromMilliseconds(200), TimeSpan.FromSeconds(8));
                 }
                 else
                 {

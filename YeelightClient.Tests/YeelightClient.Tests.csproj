@@ -1,0 +1,67 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Yeelight.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="10.1.0" />
+    <!-- Property-based tests and the fuzz tests (Fuzz/): generators of random input, and properties that have to hold for all of it. -->
+    <PackageReference Include="FsCheck" Version="3.6.0" />
+    <!-- nuget.org renders the README of the package with Markdig: ReadmeTests parse it with the same library, in the version that nuget.org
+         runs (0.37.0: Markdig.Signed in the Directory.Packages.props of NuGetGallery, checked on 2026-11-02), because it is the behaviour of
+         that version that the README meets, bugs included, and not the newest. Dependabot leaves it alone (.github/dependabot.yml), and a test
+         (ReadmeTests) fails when it is changed, so that raising it is a decision and not an accident: see CONTRIBUTING.md, "Dependency updates". -->
+    <PackageReference Include="Markdig" Version="0.37.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\YeelightClient\YeelightClient.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The README of the package, which nuget.org shows as the page of the package (see ReadmeTests). -->
+    <EmbeddedResource Include="..\README.md" LogicalName="README.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      The parts of the test app (YeelightClient.TestApp) that do not depend on WinUI are compiled into these tests as well. The app itself
+      only builds on Windows, but its models and services (the flow editor, the formatting of values, the log and its export, the JSON
+      helpers, the settings) are checked on every platform, on every build. See the tests in TestApp/.
+    -->
+    <Compile Include="..\YeelightClient.TestApp\Models\FlowEditorModel.cs" Link="TestApp\Linked\FlowEditorModel.cs" />
+    <Compile Include="..\YeelightClient.TestApp\Models\FlowStepModel.cs" Link="TestApp\Linked\FlowStepModel.cs" />
+    <Compile Include="..\YeelightClient.TestApp\Models\PropertyRow.cs" Link="TestApp\Linked\PropertyRow.cs" />
+    <Compile Include="..\YeelightClient.TestApp\Models\ProtocolCatalog.cs" Link="TestApp\Linked\ProtocolCatalog.cs" />
+    <Compile Include="..\YeelightClient.TestApp\Models\RawHistoryItem.cs" Link="TestApp\Linked\RawHistoryItem.cs" />
+    <Compile Include="..\YeelightClient.TestApp\Models\Rgb24.cs" Link="TestApp\Linked\Rgb24.cs" />
+    <Compile Include="..\YeelightClient.TestApp\Services\AppLogger.cs" Link="TestApp\Linked\AppLogger.cs" />
+    <Compile Include="..\YeelightClient.TestApp\Services\AppSettings.cs" Link="TestApp\Linked\AppSettings.cs" />
+    <Compile Include="..\YeelightClient.TestApp\Services\BoundedBuffer.cs" Link="TestApp\Linked\BoundedBuffer.cs" />
+    <Compile Include="..\YeelightClient.TestApp\Services\EventEntry.cs" Link="TestApp\Linked\EventEntry.cs" />
+    <Compile Include="..\YeelightClient.TestApp\Services\JsonTools.cs" Link="TestApp\Linked\JsonTools.cs" />
+    <Compile Include="..\YeelightClient.TestApp\Services\LightFormat.cs" Link="TestApp\Linked\LightFormat.cs" />
+    <Compile Include="..\YeelightClient.TestApp\Services\LocalNetwork.cs" Link="TestApp\Linked\LocalNetwork.cs" />
+    <Compile Include="..\YeelightClient.TestApp\Services\LogEntry.cs" Link="TestApp\Linked\LogEntry.cs" />
+    <Compile Include="..\YeelightClient.TestApp\Services\LogFilter.cs" Link="TestApp\Linked\LogFilter.cs" />
+    <Compile Include="..\YeelightClient.TestApp\Services\MusicDemo.cs" Link="TestApp\Linked\MusicDemo.cs" />
+    <Compile Include="..\YeelightClient.TestApp\Services\Outcome.cs" Link="TestApp\Linked\Outcome.cs" />
+    <Compile Include="..\YeelightClient.TestApp\Services\RawFormat.cs" Link="TestApp\Linked\RawFormat.cs" />
+    <Compile Include="..\YeelightClient.TestApp\Services\SessionExporter.cs" Link="TestApp\Linked\SessionExporter.cs" />
+    <Compile Include="..\YeelightClient.TestApp\Services\SimulatedLights.cs" Link="TestApp\Linked\SimulatedLights.cs" />
+    <Compile Include="..\YeelightClient.TestApp\Services\VersionInfo.cs" Link="TestApp\Linked\VersionInfo.cs" />
+  </ItemGroup>
+
+</Project>

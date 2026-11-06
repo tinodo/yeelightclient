@@ -1,0 +1,20 @@
+- name: Getting started
+  href: getting-started.md
+- name: Finding lights
+  href: discovery.md
+- name: Controlling a light
+  href: controlling.md
+- name: Colour flows and scenes
+  href: flows-and-scenes.md
+- name: Music mode
+  href: music-mode.md
+- name: Events and state
+  href: events.md
+- name: Errors and limits
+  href: errors-and-limits.md
+- name: The protocol at a glance
+  href: protocol.md
+- name: The test app
+  href: test-app.md
+- name: Troubleshooting
+  href: troubleshooting.md

@@ -1,0 +1,211 @@
+# Builds and tests YeelightClient on every push/PR to main.
+# The library and its tests are cross-platform; the WinUI 3 test app is Windows-only and is built separately.
+name: Build and Test
+
+on:
+  push:
+    branches: [ "main" ]
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+  # No path filter on pull requests: main requires these checks, and a workflow that is skipped by a path filter
+  # leaves its required checks pending forever, which would block every docs-only pull request. No branch filter
+  # either, so that a pull request that is stacked on another one gets the same checks.
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build & Test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Check the tooling compiles
+        if: matrix.os == 'ubuntu-latest'
+        run: python3 -m py_compile tools/verify-package.py tools/release_notes.py tools/compare-published.py tools/coverage_summary.py tools/make-icon.py tools/docs/build.py tools/docs/check-links.py
+
+      # The tools that guard a release: what a package may hold, and what the notes of a release are made of.
+      - name: Test the release tooling
+        if: matrix.os == 'ubuntu-latest'
+        run: python3 -m unittest discover -s tools -p "test_*.py" -v
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Restore
+        run: dotnet restore YeelightClient.Tests/YeelightClient.Tests.csproj
+
+      - name: Build
+        run: dotnet build YeelightClient.Tests/YeelightClient.Tests.csproj --no-restore --configuration Release
+
+      - name: Test
+        run: >
+          dotnet test YeelightClient.Tests/YeelightClient.Tests.csproj
+          --no-build --configuration Release
+          --logger "trx;LogFilePrefix=test-results"
+          --collect:"XPlat Code Coverage"
+          --results-directory ./TestResults
+
+      # What the tests reach of the library, in the summary of the run, and held above a floor (tools/coverage-floor.json): a change that
+      # takes tests away, or adds code that no test reaches, does not go unnoticed. On Linux only: the floor is the number of that run (a few
+      # tests only run there), and the reports of the other systems are kept as artifacts below. It runs when the tests passed, and a run
+      # that passed without a report fails here (the coverage is no longer collected); after failed tests it runs as long as they wrote a
+      # report, and a cancelled run is left alone.
+      - name: Summarize the coverage, and hold it above the floor
+        if: ${{ !cancelled() && matrix.os == 'ubuntu-latest' && (success() || hashFiles('TestResults/**/coverage.cobertura.xml') != '') }}
+        run: python3 tools/coverage_summary.py "TestResults/**/coverage.cobertura.xml" --floor tools/coverage-floor.json --summary "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-results-${{ matrix.os }}
+          path: TestResults/**/*.trx
+          retention-days: 14
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-${{ matrix.os }}
+          path: TestResults/**/coverage.cobertura.xml
+          retention-days: 14
+
+  package:
+    name: Pack (single assembly)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Restore
+        run: dotnet restore YeelightClient/YeelightClient.csproj
+
+      - name: Build
+        run: dotnet build YeelightClient/YeelightClient.csproj --configuration Release --no-restore
+
+      - name: Pack
+        run: dotnet pack YeelightClient/YeelightClient.csproj --configuration Release --no-build --output ./artifacts
+
+      # The package has to stay one thing: the library, its XML documentation, the README, the license and the icon. Nothing else is shipped:
+      # no data files, no analyzers, no build targets. Its symbol package (the .snupkg next to it) is verified with it: the PDB of each
+      # target framework, with Source Link.
+      - name: Verify the package is a single assembly, with its symbols
+        run: python3 tools/verify-package.py ./artifacts/*.nupkg
+
+      # What a consumer does: the sample is built against the package that was just packed, for both of its target frameworks, with that
+      # folder as the only source (what the package needs is in the NuGet cache since the library was restored). Contents that are right
+      # can still make a package that cannot be used; this is what shows it.
+      - name: Build the sample against the package
+        run: |
+          version=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' YeelightClient/YeelightClient.csproj | head -n 1)
+          echo "Building the sample against YeelightClient $version, from ./artifacts."
+          dotnet build samples/ConsoleSample/ConsoleSample.csproj --configuration Release -p:YeelightClientVersion="$version" --source ./artifacts
+
+      - name: Upload the package
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: nuget-package-preview
+          path: |
+            ./artifacts/*.nupkg
+            ./artifacts/*.snupkg
+          retention-days: 14
+
+  # The test app is a WinUI 3 application: it only builds on Windows. It is published unpackaged and self-contained, so the
+  # artifact is a folder that runs on any Windows 10 (1809) or later machine, with nothing to install.
+  build-test-app:
+    name: Build Test App (WinUI 3)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Publish
+        run: >
+          dotnet publish YeelightClient.TestApp/YeelightClient.TestApp.csproj
+          --configuration Release
+          --runtime win-x64
+          --self-contained true
+          -p:Platform=x64
+          --output ./artifacts/YeelightClient.TestApp-win-x64
+
+      # Starts the app, which opens every page, builds, fills in and reads the editors, goes the whole way against a simulated light on the
+      # loopback (the real network is never used), and takes a picture of each page, and says so in a log. This is what finds an error in a
+      # XAML file (they are only read when the app runs) before anyone has to start the app to find it; the pictures show the design.
+      - name: Smoke test
+        shell: pwsh
+        run: |
+          $exe = Join-Path $PWD 'artifacts/YeelightClient.TestApp-win-x64/YeelightClient.TestApp.exe'
+          $log = Join-Path $PWD 'smoke-test.log'
+          $process = Start-Process -FilePath $exe -ArgumentList '--smoke-test', "`"$log`"" -PassThru
+          if (-not $process.WaitForExit(120000)) {
+            $process.Kill()
+            Write-Host 'The app did not finish within two minutes.'
+            if (Test-Path $log) { Get-Content $log }
+            exit 1
+          }
+          if (Test-Path $log) { Get-Content $log } else { Write-Host 'The app wrote no log.' }
+          if ($process.ExitCode -ne 0) {
+            Write-Host "The app ended with exit code $($process.ExitCode)."
+            exit 1
+          }
+
+      - name: What Windows recorded about the app
+        if: failure()
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          # A crash while the app closes leaves no trace in the log of the smoke test; Windows records it.
+          Get-WinEvent -FilterHashtable @{ LogName = 'Application'; StartTime = (Get-Date).AddMinutes(-20) } -ErrorAction SilentlyContinue |
+            Where-Object { $_.ProviderName -in '.NET Runtime', 'Application Error', 'Windows Error Reporting' } |
+            ForEach-Object { "[$($_.TimeCreated)] $($_.ProviderName) ($($_.Id))"; $_.Message; '' }
+
+      - name: Upload the smoke test log and pictures
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-app-smoke-test
+          path: |
+            smoke-test.log
+            smoke-test-*.png
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload the test app
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: YeelightClient.TestApp-win-x64
+          path: ./artifacts/YeelightClient.TestApp-win-x64
+          retention-days: 14

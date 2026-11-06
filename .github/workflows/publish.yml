@@ -1,0 +1,693 @@
+# Publishes YeelightClient whenever a vX.Y.Z tag is pushed: the NuGet package (with its symbols) to nuget.org, via Trusted
+# Publishing/OIDC - no long-lived API key - and to GitHub Packages, and the GitHub release, with the notes, the package, the test
+# app and the attestation of where the files come from. Keep this separate from build.yml: CI runs on every push/PR, publishing only
+# runs on a deliberate version tag.
+#
+# Release process (details and troubleshooting: CONTRIBUTING.md, "Releasing"):
+#   1. Bump <Version> in YeelightClient/YeelightClient.csproj (e.g. to 1.0.0-beta.1), give the section of that version in CHANGELOG.md
+#      its date, and merge both to main.
+#   2. git tag v1.0.0-beta.1 && git push origin v1.0.0-beta.1   (the tag must equal <Version> and be on main)
+#   3. This workflow checks the version and the changelog, packs once, builds the test app, attests where the files come from (a signed
+#      build provenance attestation, which it verifies at once) and writes the notes of the release.
+#      Then it waits for your approval of the deployment to the `release` environment (a published version is permanent),
+#      pushes that same .nupkg to nuget.org, waits until nuget.org lists the version, checks that nuget.org serves that package, pushes
+#      the symbols, pushes the package to GitHub Packages, and creates the GitHub release.
+#
+# A release is only ever made by a run of its own tag: one that the push of the tag started, or one that is started by hand (Run
+# workflow) with "Use workflow from" set to the tag. The attestation of the files says which ref and which commit the run was for, so
+# that is what makes it say where the files really come from.
+#
+# A dry run (Actions, Publish Package, Run workflow, "Dry run" ticked, from any branch, never from a tag) does everything up to the
+# approval, for the branch that it is started on: it checks and packs it, builds the test app, attests and verifies the files (of a
+# branch, which a check for a tag does not accept), shows the notes of the release in the summary of the run, and makes a draft
+# release to prove that one can be made (which is deleted again). It publishes nothing.
+#
+# One-time setup required on nuget.org (see https://learn.microsoft.com/nuget/nuget-org/trusted-publishing):
+#   nuget.org/account/trustedpublishing -> Add policy
+#     Repository Owner: tinodo | Repository: yeelightclient | Workflow File: publish.yml | Environment: release
+#     (scopes: publish new packages and publish new versions, for the package YeelightClient: its first release creates it)
+#   And in this repo: the `release` environment (Settings -> Environments) with an environment secret
+#   NUGET_USER = the nuget.org profile name of the package owner (not the e-mail address, not the GitHub name).
+#   The policy names this file and the environment: do not rename either.
+name: Publish Package
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run: check, pack and prepare everything for the branch that this is started on, and publish nothing'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# One run per version at a time. A second run for the same tag (a tag that was pushed again, a manual run) waits until the first has
+# ended, and then finds the version on nuget.org, and stops at the first job: the two never race to publish the same version. A run
+# that waits for the approval of the release holds its turn, so cancel it before you start over. A dry run only waits for another
+# run of the same branch.
+concurrency:
+  group: publish-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  version:
+    name: Check the version
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.commit.outputs.sha }}
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.notes.outputs.prerelease }}
+    steps:
+      - name: Decide what is built
+        id: which
+        shell: bash
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then
+            # A dry run is of a branch, never of a tag: what an attestation says about a tag is then always about a release, and the command
+            # in the notes of a release (which asks for the tag) never accepts the files of a dry run.
+            if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+              echo "::error::A dry run is of a branch, and this run is of the tag $GITHUB_REF_NAME: a tag is for a release. Start the dry run with 'Use workflow from' set to a branch."
+              exit 1
+            fi
+            # A dry run builds the commit that it was started on (not the branch, which can move while it runs); there is no tag.
+            ref="$GITHUB_SHA"
+            tag=""
+          else
+            # A release is made by a run of its own tag, so that the attestation of the files (which names the ref and the commit of the
+            # run) says what was built, and the command in the notes of the release, which asks for that tag, holds.
+            if [ "$GITHUB_REF_TYPE" != "tag" ]; then
+              echo "::error::A release is made by a run of its tag, and this run is of the branch $GITHUB_REF_NAME. Push the tag, or start the workflow with 'Use workflow from' set to the tag. To try the workflow on a branch, tick 'Dry run'."
+              exit 1
+            fi
+            tag="$GITHUB_REF_NAME"
+            if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+              echo "::error::'$tag' is not a version tag (expected vX.Y.Z)."
+              exit 1
+            fi
+            # The commit that this run is of: the one that the tag pointed at when it was run, and a tag that is moved afterwards is not followed.
+            ref="$GITHUB_SHA"
+          fi
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.which.outputs.ref }}
+          # The whole history, to check below that the tagged commit is on main.
+          fetch-depth: 0
+
+      # Every other job builds this commit, and not the tag or the branch again: a ref can move while the run goes on (the approval
+      # of a release can take a day), and the package, the test app and the notes must come from the commit that was checked here.
+      - name: Pin the commit
+        id: commit
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      # A version is permanent on nuget.org, so a tag that was pushed from a branch must never get that far.
+      - name: Verify the tagged commit is on main
+        if: ${{ !inputs.dry_run }}
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor HEAD FETCH_HEAD; then
+            echo "::error::The commit that is being published is not on main. Merge it to main, then tag main."
+            exit 1
+          fi
+
+      - name: Determine the version
+        id: version
+        shell: bash
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+          TAG: ${{ steps.which.outputs.tag }}
+        run: |
+          project_version=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' YeelightClient/YeelightClient.csproj)
+          if [ "$DRY_RUN" = "true" ]; then
+            version="$project_version"
+            tag="v$version"
+          else
+            version="${TAG#v}"
+            tag="$TAG"
+            if [ "$project_version" != "$version" ]; then
+              echo "::error::Tag version ($version) does not match <Version> in YeelightClient.csproj ($project_version)"
+              exit 1
+            fi
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      # A version that nuget.org lists is never built again. A new build would use whatever the runner has today, while the package
+      # that was published can never be replaced (a push is skipped as a duplicate), so the symbols, the test app and the assets of
+      # the release could end up not matching it. To finish a release that failed after the push, re-run the failed jobs of its run:
+      # they use the artifacts of that run. nuget.org answers 404 for a package that has no version yet, which is what the first
+      # release of YeelightClient finds: nothing is published then, and that is not an error.
+      - name: Verify the version is not published yet
+        if: ${{ !inputs.dry_run }}
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          status=$(curl -sS -o index.json -w '%{http_code}' "https://api.nuget.org/v3-flatcontainer/yeelightclient/index.json")
+          if [ "$status" = "404" ]; then
+            echo "YeelightClient is not on nuget.org yet, so $VERSION is not published."
+            exit 0
+          fi
+          if [ "$status" != "200" ]; then
+            echo "::error::nuget.org answered HTTP $status when asked for the versions of YeelightClient, so it cannot be told whether $VERSION is published."
+            exit 1
+          fi
+          version=$(echo "$VERSION" | tr '[:upper:]' '[:lower:]')
+          if jq -e --arg v "$version" '.versions | index($v) != null' index.json > /dev/null; then
+            echo "::error::YeelightClient $VERSION is on nuget.org already, and a version is never built again. To finish a release that failed after the push, re-run the failed jobs of its run (not all jobs, and not a new run)."
+            exit 1
+          fi
+
+      # The notes of the release are what CHANGELOG.md says about this version, so a version without a section that has a date is
+      # refused here, before anything is built or published.
+      - name: Check the changelog
+        id: notes
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: python3 tools/release_notes.py check "$VERSION" --github-output "$GITHUB_OUTPUT"
+
+  pack:
+    name: Pack
+    needs: version
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.version.outputs.sha }}
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Restore
+        run: dotnet restore YeelightClient/YeelightClient.csproj
+
+      - name: Build
+        run: dotnet build YeelightClient/YeelightClient.csproj --configuration Release --no-restore
+
+      # The package, and next to it its symbols (YeelightClient.csproj: IncludeSymbols, SymbolPackageFormat snupkg).
+      - name: Pack
+        run: dotnet pack YeelightClient/YeelightClient.csproj --configuration Release --no-build -o ./artifacts
+
+      # Never publish anything but the library, its XML documentation, the README, the license and the icon. The symbols have to be
+      # there, and have to carry Source Link.
+      - name: Verify the package is a single assembly, with its symbols
+        shell: bash
+        run: python tools/verify-package.py ./artifacts/*.nupkg
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: nuget-package
+          path: |
+            ./artifacts/*.nupkg
+            ./artifacts/*.snupkg
+          if-no-files-found: error
+          retention-days: 90
+
+  # The test app is a download of the release: self-contained and unpackaged, so that it runs on any Windows 10 (1809) or later
+  # machine with nothing to install (the same publish as the Build Test App job of build.yml).
+  test-app:
+    name: Build the test app
+    needs: version
+    runs-on: windows-latest
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.version.outputs.sha }}
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Publish
+        shell: pwsh
+        run: >
+          dotnet publish YeelightClient.TestApp/YeelightClient.TestApp.csproj
+          --configuration Release
+          --runtime win-x64
+          --self-contained true
+          -p:Platform=x64
+          --output "./stage/YeelightClient.TestApp-$($env:VERSION)-win-x64"
+
+      # One folder in the zip, named like the zip, so that unzipping it makes one folder and not a mess.
+      - name: Zip
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path ./artifacts | Out-Null
+          Compress-Archive -Path "./stage/YeelightClient.TestApp-$($env:VERSION)-win-x64" -DestinationPath "./artifacts/YeelightClient.TestApp-$($env:VERSION)-win-x64.zip" -CompressionLevel Optimal
+
+      - name: Upload the test app
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-app
+          path: ./artifacts/*.zip
+          if-no-files-found: error
+          # As long as the package: a release that failed is finished by re-running its failed jobs, which need all three artifacts.
+          retention-days: 90
+
+  # The files are attested here, and not in the jobs that built them: this job restores nothing and builds nothing, so no package that a
+  # build pulls in (a restore can run code) is able to ask for the token that signs an attestation. All that it has is the files of
+  # those jobs, the pinned actions, and the scripts of the commit that was packed.
+  prepare-release:
+    name: Prepare the release
+    needs: [version, pack, test-app]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # the token that Sigstore turns into the short-lived certificate that signs an attestation
+      attestations: write # to store the attestation with the repository
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      TAG: ${{ needs.version.outputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.version.outputs.sha }}
+          persist-credentials: false
+
+      - name: Download the package
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: nuget-package
+          path: ./assets
+
+      - name: Download the test app
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: test-app
+          path: ./assets
+
+      # The libraries are attested on their own as well: nuget.org signs the package that it serves, which changes that file but not what
+      # is in it, so whoever has the libraries from nuget.org (the NuGet cache of a restore holds them) can check them, too.
+      - name: Take the libraries out of the package
+        run: unzip -q "assets/YeelightClient.$VERSION.nupkg" 'lib/*/YeelightClient.dll' -d libraries
+
+      # What a build provenance attestation says: this workflow of this repository made these files, from this commit and ref, on a
+      # GitHub-hosted runner. It is signed with a certificate that Sigstore issues for this run, and kept with the repository (a public
+      # repository's attestations are also in a public transparency log). A dry run attests too, so that this is tried before a release,
+      # but what it attests came from a branch, which a check for the tag of a release (CONTRIBUTING.md, "Releasing") does not accept.
+      - name: Attest where the files come from
+        id: attest
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: |
+            assets/*.nupkg
+            assets/*.snupkg
+            assets/*.zip
+            libraries/lib/*/YeelightClient.dll
+
+      # The attestation as a file of the release: one Sigstore bundle for all the files, in the JSON Lines format and with the name that
+      # tools (and the OpenSSF Scorecard) look for in a release for a provenance file, *.intoto.jsonl. With it a file can be checked
+      # without asking GitHub for the attestation (`gh attestation verify --bundle`), and it stays with the release.
+      - name: Keep the attestation as a file of the release
+        shell: bash
+        env:
+          BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+        run: |
+          mkdir attestation
+          jq -c . "$BUNDLE" > "attestation/YeelightClient.$VERSION.intoto.jsonl"
+          [ -s "attestation/YeelightClient.$VERSION.intoto.jsonl" ] || { echo "::error::The attestation file is empty."; exit 1; }
+          sha256sum "attestation/YeelightClient.$VERSION.intoto.jsonl"
+
+      # What a person would check, checked here, before the approval: that GitHub has an attestation for every file, for these very
+      # bytes, by this workflow of this repository, from a GitHub-hosted runner, for the ref and the commit that the notes of the release
+      # ask for: the tag, and the commit that was packed. A dry run has no tag: its files are of the branch that it was started on. And
+      # that the file of the release is enough on its own: the same check for every file, with the attestation taken from that file. A run
+      # that cannot show this has published nothing yet. Each check gets three tries: it asks GitHub, for the attestation and for the keys
+      # to check it (the keys only, with the file), and that can fail for a moment.
+      - name: Verify the attestations
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          SHA: ${{ needs.version.outputs.sha }}
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then ref="$GITHUB_REF"; else ref="refs/tags/$TAG"; fi
+          bundle="attestation/YeelightClient.$VERSION.intoto.jsonl"
+          verify() {
+            file="$1"
+            shift
+            for attempt in 1 2 3; do
+              if gh attestation verify "$file" "$@" \
+                --repo "$GITHUB_REPOSITORY" \
+                --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/publish.yml" \
+                --source-ref "$ref" \
+                --source-digest "$SHA" \
+                --deny-self-hosted-runners; then
+                return 0
+              fi
+              echo "Attempt $attempt of 3 failed for $file."
+              [ "$attempt" = 3 ] || sleep 15
+            done
+            return 1
+          }
+          for file in assets/* libraries/lib/*/YeelightClient.dll; do
+            verify "$file"
+            echo "Verified the attestation of $(sha256sum "$file")"
+          done
+          for file in assets/* libraries/lib/*/YeelightClient.dll; do
+            verify "$file" --bundle "$bundle"
+            echo "Verified the attestation in $bundle of $(sha256sum "$file")"
+          done
+
+      # The text of the release: the notes of the version from CHANGELOG.md, how to install it, and the assets with their SHA-256.
+      - name: Write the notes of the release
+        run: |
+          python3 tools/release_notes.py compose "$VERSION" "$TAG" \
+            --asset "assets/YeelightClient.$VERSION.nupkg" \
+            --asset "assets/YeelightClient.TestApp-$VERSION-win-x64.zip" \
+            --asset "attestation/YeelightClient.$VERSION.intoto.jsonl" \
+            --output release-notes.md
+          {
+            echo "### The release $TAG, as it will be made"
+            echo
+            cat release-notes.md
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the notes
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-notes
+          path: release-notes.md
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Upload the attestation
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: attestation
+          path: attestation/YeelightClient.${{ env.VERSION }}.intoto.jsonl
+          if-no-files-found: error
+          retention-days: 90
+
+  # Only for a dry run: proves that the release can be made (the notes, and the upload of the three files), with a draft that has
+  # nothing to do with the tag, and that is deleted again, whatever happens.
+  release-dry-run:
+    name: Try the release (a draft, deleted again)
+    if: ${{ inputs.dry_run }}
+    needs: [version, prepare-release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      VERSION: ${{ needs.version.outputs.version }}
+      TAG: ${{ needs.version.outputs.tag }}
+    steps:
+      - name: Download the package
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: nuget-package
+          path: ./assets
+
+      - name: Download the test app
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: test-app
+          path: ./assets
+
+      - name: Download the attestation
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: attestation
+          path: ./assets
+
+      - name: Download the notes
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-notes
+          path: .
+
+      - name: Make a draft release, and delete it
+        shell: bash
+        run: |
+          # Unique for every attempt of every run, so that a retry can never collide with what a failed attempt left behind.
+          draft="dry-run-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+
+          # Whatever happens, no draft of this attempt is left: a draft is not found by its tag, so it is looked up in the list of
+          # releases, also when it was made but a file did not upload. The step keeps the outcome that it had, and also fails when the
+          # draft could not be found or deleted, so that a green dry run never hides a draft that was left behind.
+          cleanup() {
+            status=$?
+            trap - EXIT
+            if ! ids=$(gh api "repos/$GH_REPO/releases?per_page=100" --jq ".[] | select(.draft and .tag_name == \"$draft\") | .id"); then
+              echo "::error::The draft release $draft could not be looked up to delete it: delete it by hand (Releases, Drafts)."
+              exit 1
+            fi
+            for id in $ids; do
+              if gh api -X DELETE "repos/$GH_REPO/releases/$id" > /dev/null; then
+                echo "The draft release $draft ($id) is deleted."
+              else
+                echo "::error::The draft release $draft ($id) could not be deleted: delete it by hand (Releases, Drafts)."
+                status=1
+              fi
+            done
+            exit "$status"
+          }
+          trap cleanup EXIT
+
+          gh release create "$draft" --draft --target "$GITHUB_SHA" --title "Dry run of $TAG" --notes-file release-notes.md \
+            "assets/YeelightClient.$VERSION.nupkg" "assets/YeelightClient.TestApp-$VERSION-win-x64.zip" "assets/YeelightClient.$VERSION.intoto.jsonl"
+
+          id=$(gh api "repos/$GH_REPO/releases?per_page=100" --jq ".[] | select(.draft and .tag_name == \"$draft\") | .id")
+          if [ -z "$id" ]; then
+            echo "::error::The draft release $draft was made, but it is not in the list of releases."
+            exit 1
+          fi
+
+          assets=$(gh api "repos/$GH_REPO/releases/$id" --jq '[.assets[] | select(.state == "uploaded")] | length')
+          echo "The draft release has $assets of 3 files, uploaded."
+          [ "$assets" = "3" ] || { echo "::error::The draft release has $assets of its 3 files."; exit 1; }
+
+  publish-nuget-org:
+    name: Publish to NuGet.org
+    if: ${{ !inputs.dry_run }}
+    needs: [version, prepare-release]
+    runs-on: ubuntu-latest
+    environment: release
+    timeout-minutes: 60
+    permissions:
+      id-token: write # required for NuGet Trusted Publishing (OIDC)
+      contents: read
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      # The approval can take a long time. What is published has to be what was tagged, so the tag must still point at the commit that
+      # was packed: a tag that was moved in the meantime stops the release here, before anything is pushed.
+      - name: Verify the tag still points at the commit that was packed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.version.outputs.tag }}
+          SHA: ${{ needs.version.outputs.sha }}
+        run: |
+          actual=$(gh api "repos/$GITHUB_REPOSITORY/commits/refs/tags/$TAG" --jq .sha)
+          if [ "$actual" != "$SHA" ]; then
+            echo "::error::The tag $TAG points at $actual now, and the package was built from $SHA. Nothing was published: GitHub Packages and the release wait for this job. Release a new version."
+            exit 1
+          fi
+
+      # Only the scripts of the commit that was packed, to compare the published package with the one that was packed. This comes first: a
+      # checkout into a workspace that is not a git repository yet deletes what is in it, which the downloaded package would be.
+      - name: Checkout the tools of the commit that was packed
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.version.outputs.sha }}
+          sparse-checkout: tools
+          persist-credentials: false
+
+      - name: Download package artifact
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: nuget-package
+          path: ./artifacts
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.x
+
+      - name: NuGet login (OIDC)
+        id: login
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      # --skip-duplicate lets the re-run of this job go on after an earlier attempt pushed the package. It also hides a package that
+      # somebody else pushed first, which is why the package that nuget.org serves is compared with the one that was packed below,
+      # before anything else is published.
+      - name: Push to NuGet.org
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: dotnet nuget push ./artifacts/*.nupkg --no-symbols --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+      # nuget.org validates a package before it lists it, which takes a few minutes. A version that does not show up is a release
+      # that did not happen, however green the push was.
+      - name: Wait until NuGet.org lists the version
+        shell: bash
+        run: |
+          version=$(echo "$VERSION" | tr '[:upper:]' '[:lower:]')
+          for attempt in $(seq 1 60); do
+            if curl -fsS "https://api.nuget.org/v3-flatcontainer/yeelightclient/index.json" | jq -e --arg v "$version" '.versions | index($v) != null' > /dev/null; then
+              echo "YeelightClient $VERSION is listed on nuget.org."
+              exit 0
+            fi
+            echo "Not listed yet (attempt $attempt of 60); waiting 30 seconds."
+            sleep 30
+          done
+          echo "::error::YeelightClient $VERSION is not listed on nuget.org after 30 minutes. Look at https://www.nuget.org/packages/YeelightClient/$VERSION (the validation may have failed), then re-run this job."
+          exit 1
+
+      # What is listed has to be what was packed, file by file (nuget.org adds its signature and nothing else): the symbols, GitHub
+      # Packages and the release that follow all describe the package of this run.
+      - name: Verify that NuGet.org serves the package that was packed
+        run: python3 tools/compare-published.py ./artifacts/YeelightClient.*.nupkg
+
+      # After the package, and on their own: a problem with the symbols must not make the release fail, and a re-run of this job pushes
+      # them again (the package is skipped as a duplicate).
+      - name: Push the symbols
+        id: symbols
+        continue-on-error: true
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: dotnet nuget push ./artifacts/*.snupkg --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+      - name: Say that the symbols were not pushed
+        if: ${{ steps.symbols.outcome == 'failure' }}
+        run: echo "::warning::The package is published, but its symbols were not pushed. Re-run this job to push them again."
+
+  # After nuget.org has listed the package, and not before: the approval of the release is the one gate of every channel, so a release
+  # that is stopped (a tag that moved, an approval that was refused) has published nothing anywhere.
+  publish-github-packages:
+    name: Publish to GitHub Packages
+    if: ${{ !inputs.dry_run }}
+    needs: [version, prepare-release, publish-nuget-org]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Download package artifact
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: nuget-package
+          path: ./artifacts
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Push to GitHub Packages
+        env:
+          OWNER: ${{ github.repository_owner }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          dotnet nuget add source --username "$OWNER" --password "$TOKEN" --store-password-in-clear-text --name github "https://nuget.pkg.github.com/$OWNER/index.json"
+          dotnet nuget push ./artifacts/*.nupkg --no-symbols --source github --api-key "$TOKEN" --skip-duplicate
+
+  # After the package is on every channel (nuget.org lists it, GitHub Packages has it): a release that announces a package that people
+  # cannot install is worse than no release.
+  github-release:
+    name: Create the GitHub release
+    if: ${{ !inputs.dry_run }}
+    needs: [version, prepare-release, publish-nuget-org, publish-github-packages]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      VERSION: ${{ needs.version.outputs.version }}
+      TAG: ${{ needs.version.outputs.tag }}
+      SHA: ${{ needs.version.outputs.sha }}
+      PRERELEASE: ${{ needs.version.outputs.prerelease }}
+    steps:
+      # The tag can move during the wait for nuget.org, or before a re-run of this job, and a release takes its tag as it is: the tag has
+      # to point at the commit that the package, the test app and the notes were made from.
+      - name: Verify the tag still points at the commit that was released
+        run: |
+          actual=$(gh api "repos/$GH_REPO/commits/refs/tags/$TAG" --jq .sha)
+          if [ "$actual" != "$SHA" ]; then
+            echo "::error::The tag $TAG points at $actual now, but what was published was built from $SHA, so the release was not made. Move the tag back (git push --force origin $SHA:refs/tags/$TAG) and re-run this job, or make the release by hand."
+            exit 1
+          fi
+
+      - name: Download the package
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: nuget-package
+          path: ./assets
+
+      - name: Download the test app
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: test-app
+          path: ./assets
+
+      - name: Download the attestation
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: attestation
+          path: ./assets
+
+      - name: Download the notes
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-notes
+          path: .
+
+      # A re-run (or a release that was made by hand, even a draft) is updated instead of failing on it: the files are uploaded first
+      # and the release is published after that, as a person would do it.
+      - name: Create the release
+        shell: bash
+        run: |
+          files=("assets/YeelightClient.$VERSION.nupkg" "assets/YeelightClient.TestApp-$VERSION-win-x64.zip" "assets/YeelightClient.$VERSION.intoto.jsonl")
+
+          # A release becomes the latest one only when it is the newest stable version: finishing an older one (a re-run, a recovery)
+          # must not take that place from a newer one.
+          if [ "$PRERELEASE" = "true" ]; then
+            kind=(--prerelease)
+          else
+            latest=$(gh api "repos/$GH_REPO/releases/latest" --jq .tag_name 2> /dev/null || true)
+            if [ -z "$latest" ] || [ "$(printf '%s\n%s\n' "${latest#v}" "$VERSION" | sort -V | tail -n 1)" = "$VERSION" ]; then
+              kind=(--prerelease=false --latest)
+            else
+              echo "$latest is newer than $TAG, so $TAG is not made the latest release."
+              kind=(--prerelease=false --latest=false)
+            fi
+          fi
+
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "The release $TAG exists: its files and notes are updated, and it is published."
+            gh release upload "$TAG" "${files[@]}" --clobber
+            gh release edit "$TAG" --title "$TAG" --notes-file release-notes.md --draft=false "${kind[@]}"
+          else
+            gh release create "$TAG" --verify-tag --title "$TAG" --notes-file release-notes.md "${kind[@]}" "${files[@]}"
+          fi
+          gh release view "$TAG" --json url,isPrerelease,isDraft,assets --jq '"\(.url) (prerelease: \(.isPrerelease), draft: \(.isDraft)): \([.assets[].name] | join(", "))"'

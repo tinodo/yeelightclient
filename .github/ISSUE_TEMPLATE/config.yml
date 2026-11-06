@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Yeelight Inter-Operation Specification
+    url: https://www.yeelight.com/download/Yeelight_Inter-Operation_Spec.pdf
+    about: Authoritative reference for the LAN protocol of Yeelight lights that this library implements.
+  - name: YeelightClient discussions
+    url: https://github.com/tinodo/yeelightclient/discussions
+    about: Questions and general discussion that aren't a bug report or feature request.

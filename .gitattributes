@@ -1,0 +1,5 @@
+# Scripts and workflow files are checked out with LF on every platform: a carriage return in a shell script, or in the
+# run: block of a workflow, breaks it on a Linux runner.
+*.sh text eol=lf
+*.yml text eol=lf
+*.py text eol=lf

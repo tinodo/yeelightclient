@@ -1,0 +1,21 @@
+name: Feature request
+description: Suggest a new method, property, event or capability from the Yeelight protocol, or an improvement to YeelightClient
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If this is about a specific method, property or notification of the Yeelight protocol, please name the relevant section of the
+        [Yeelight Inter-Operation Specification](https://www.yeelight.com/download/Yeelight_Inter-Operation_Spec.pdf).
+  - type: textarea
+    id: description
+    attributes:
+      label: What would you like to see?
+    validations:
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: What's the use case / why is this needed?
+    validations:
+      required: false

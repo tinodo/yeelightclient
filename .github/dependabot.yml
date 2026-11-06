@@ -1,0 +1,69 @@
+# Keeps the dependencies of this repository up to date (https://docs.github.com/code-security/dependabot).
+# Every Monday Dependabot proposes the routine updates of each ecosystem in one pull request; a major update of a NuGet package
+# gets a pull request of its own. CI checks them like any other pull request, and CONTRIBUTING.md, "Dependency updates", says
+# what to look at before one is merged.
+#
+# A package release waits a week (the cooldown) before it is proposed, so that a package that was published by mistake, or with
+# malicious code, is usually withdrawn before it can reach this repository. Security updates are not delayed.
+version: 2
+updates:
+  # The actions that the workflows in .github/workflows use, in one pull request. Every action is pinned to the full commit SHA of one
+  # of its releases, with the version in a comment (`uses: actions/checkout@<sha> # v7.0.1`), and the repository setting "Require
+  # actions to be pinned to a full-length commit SHA" makes a workflow fail when one is not: a tag can be moved to other code, a
+  # commit cannot. So a new release of an action reaches the workflows only through the pull request that Dependabot opens (it
+  # changes the SHA and the comment together), where CI and the review see it first.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Amsterdam
+    # The same week as the packages: an action that is published by mistake, or with malicious code, is usually withdrawn within it.
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns:
+          - "*"
+
+  # The NuGet packages of the projects of YeelightClient.sln (it is expanded into its projects) and the dotnet tool that
+  # builds the documentation (DocFX, .config/dotnet-tools.json). The minor and patch updates come together; a major update
+  # gets a pull request of its own, which is to be read before it is merged.
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Amsterdam
+    cooldown:
+      default-days: 7
+    groups:
+      nuget:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+    ignore:
+      # The one dependency of the library is part of what its users get with it, and it is asked for at the oldest version that
+      # has what the library uses (8.0.0): a library that asks for a newer one makes every application that uses it update too.
+      # So no version update is proposed for it, whatever the version. It is raised by hand when the library needs something that
+      # a newer version has. The three update types are named on purpose: a rule that only names the dependency would also hold
+      # back the pull requests of security updates (it is expanded to ">= 0" and applied to those as well), and a rule that names
+      # the update types is a filter on version updates only.
+      - dependency-name: Microsoft.Extensions.Logging.Abstractions
+        update-types:
+          - version-update:semver-major
+          - version-update:semver-minor
+          - version-update:semver-patch
+      # The one package of the tests that is not kept current on purpose: ReadmeTests parse the README with Markdig, the way nuget.org does,
+      # so its version is the one that nuget.org runs (0.37.0 on 2026-11-02: Markdig.Signed in the Directory.Packages.props of NuGetGallery),
+      # and not the newest. It is raised by hand when NuGetGallery raises it (CONTRIBUTING.md, "Dependency updates"). The update types are
+      # named, as above, so that a security update is still proposed.
+      - dependency-name: Markdig
+        update-types:
+          - version-update:semver-major
+          - version-update:semver-minor
+          - version-update:semver-patch

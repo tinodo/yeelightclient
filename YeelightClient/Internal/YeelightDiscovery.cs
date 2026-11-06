@@ -579,7 +579,24 @@ namespace Yeelight
             }
         }
 
+        /// <summary>
+        /// Reads one socket until the generation ends. Nothing waits for this task, so nothing may escape from it: a task that fails and is
+        /// never awaited is reported when it is finalized, and an application can be configured to end on that. What goes wrong that was
+        /// not foreseen is for the generation to say (the sockets are then made again).
+        /// </summary>
         private async Task ReceiveLoopAsync(UdpClient client, Generation generation)
+        {
+            try
+            {
+                await this.ReceiveDatagramsAsync(client, generation).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                generation.Fault(ex);
+            }
+        }
+
+        private async Task ReceiveDatagramsAsync(UdpClient client, Generation generation)
         {
             var failures = 0;
             var token = generation.Token;
@@ -678,13 +695,19 @@ namespace Yeelight
         {
             private readonly CancellationTokenSource _source;
             private Exception? _fault;
+            private int _disposed;
 
             public Generation(CancellationToken parent)
             {
                 this._source = CancellationTokenSource.CreateLinkedTokenSource(parent);
+
+                // Taken now, and not from the source later: a loop that is queued on the thread pool can begin after the generation was
+                // disposed (the sockets were made, and then the discovery was stopped at once), and asking a disposed source for its
+                // token throws. The token of a source that was cancelled and disposed is a cancelled one, which is what such a loop needs.
+                this.Token = this._source.Token;
             }
 
-            public CancellationToken Token => this._source.Token;
+            public CancellationToken Token { get; }
 
             public List<Searcher> Searchers { get; } = [];
 
@@ -707,6 +730,12 @@ namespace Yeelight
 
             public void Dispose()
             {
+                // Cancelling a source that was disposed throws, so this does its work once.
+                if (Interlocked.Exchange(ref this._disposed, 1) != 0)
+                {
+                    return;
+                }
+
                 this._source.Cancel();
                 foreach (var searcher in this.Searchers)
                 {

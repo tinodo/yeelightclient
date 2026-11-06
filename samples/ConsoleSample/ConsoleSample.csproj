@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <!--
+    Normally the sample uses the project of the library, and runs on .NET 10 (dotnet run, from this folder).
+    CI builds it the way a consumer of the package does: with the property YeelightClientVersion set to the version of the package, and
+    the folder of the package that was just packed as the only source, for both target frameworks of the package. That is what shows
+    that the package can be used.
+  -->
+  <PropertyGroup Condition="'$(YeelightClientVersion)' == ''">
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(YeelightClientVersion)' != ''">
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(YeelightClientVersion)' == ''">
+    <ProjectReference Include="..\..\YeelightClient\YeelightClient.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(YeelightClientVersion)' != ''">
+    <PackageReference Include="YeelightClient" Version="$(YeelightClientVersion)" />
+  </ItemGroup>
+
+</Project>

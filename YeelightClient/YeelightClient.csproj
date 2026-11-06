@@ -1,0 +1,72 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>12.0</LangVersion>
+    <RootNamespace>Yeelight</RootNamespace>
+    <AssemblyName>YeelightClient</AssemblyName>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Title>Yeelight Client</Title>
+    <Authors>tinod</Authors>
+    <Description>A complete cross-platform .NET client for Yeelight smart lights: discovery, control, events and music mode over the local network.</Description>
+    <PackageProjectUrl>https://tinodo.github.io/yeelightclient/</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <RepositoryUrl>https://github.com/tinodo/yeelightclient.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>yeelight;smart-home;smart-lighting;iot;lan;ssdp;led;bulb;dotnet;client</PackageTags>
+    <!-- The license is declared as an SPDX expression, which is what nuget.org and the license scanners read; the LICENSE file is in the package as
+         well (see below), because the license asks for its notice to be included with copies. NuGet refuses both a license expression and
+         a license file as the license of a package, so the file is only packed, and not named. -->
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Copyright>Copyright (c) 2026 Tino Donderwinkel</Copyright>
+    <Version>1.0.0-beta.1</Version>
+    <PackageReleaseNotes>https://github.com/tinodo/yeelightclient/releases/tag/v$(Version)</PackageReleaseNotes>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <!-- A missing or broken XML comment on a public member is an error: the comments are the API reference of the documentation site. -->
+    <WarningsAsErrors>$(WarningsAsErrors);nullable;CS1591;CS1570;CS1571;CS1572;CS1573;CS1574;CS1580;CS1581;CS1584;CS1587;CS1589;CS1590</WarningsAsErrors>
+    <!-- The library only uses what the trimmer and the native AOT compiler can see: no reflection, and no serializer that needs it. -->
+    <IsAotCompatible>true</IsAotCompatible>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <!-- The debug symbols are a package of their own (.snupkg), made next to the package and pushed to nuget.org with it, so that a
+         debugger can step into the library and show the source of the commit that was built (Source Link, which is part of the SDK). -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <!-- On GitHub Actions the paths of the sources are normalized, so that a build of a commit is the same wherever it was made. -->
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Packed, and not named as the license of the package: that is the expression above. -->
+    <None Include="..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <!-- Drawn by tools/make-icon.py from docs/images/logo.svg. -->
+    <None Include="icon.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The client only takes an ILogger<YeelightClient>, so it needs the abstractions and not the logging system itself. The version is the
+         oldest that has what the client uses: a library that asks for a newer one makes every application that uses it update too
+         (and breaks the restore of one that pins an older one). Dependabot leaves it alone, see .github/dependabot.yml. -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>YeelightClient.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+</Project>

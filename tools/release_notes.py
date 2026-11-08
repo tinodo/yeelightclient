@@ -35,7 +35,7 @@ TEST_APP_DESCRIPTION = (
 )
 PACKAGE_DESCRIPTION = "The package: the exact file that was pushed to nuget.org and to GitHub Packages."
 ATTESTATION_DESCRIPTION = (
-    "The build provenance attestation of the files above and of the libraries in the package (a Sigstore bundle). "
+    "The build provenance attestation of the files above and of the library in the package (a Sigstore bundle). "
     "With it the files can be checked without asking GitHub for the attestation, see *Verify*."
 )
 ATTESTATIONS = "https://docs.github.com/en/actions/concepts/security/artifact-attestations"
@@ -151,10 +151,10 @@ def verification(version, tag):
     """How to check where the files of a release come from: the build provenance attestation that the publish workflow made."""
     package = f"{PACKAGE_ID}.{version}.nupkg"
     bundle = f"{PACKAGE_ID}.{version}.intoto.jsonl"
-    cached = f"~/.nuget/packages/{PACKAGE_ID.lower()}/{version.lower()}/lib/net8.0/{PACKAGE_ID}.dll"
+    cached = f"~/.nuget/packages/{PACKAGE_ID.lower()}/{version.lower()}/lib/net10.0/{PACKAGE_ID}.dll"
     return (
         "## Verify\n\n"
-        f"The files above, and the libraries inside the package, have a signed [build provenance attestation]({ATTESTATIONS}): "
+        f"The files above, and the library inside the package, have a signed [build provenance attestation]({ATTESTATIONS}): "
         "GitHub states that the `publish.yml` workflow of this repository made them, from the commit of this release, on a "
         "GitHub-hosted runner. Check one with the [GitHub CLI](https://cli.github.com/):\n\n"
         "```shell\n"

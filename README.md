@@ -7,16 +7,16 @@
 
 A complete cross platform .NET client for Yeelight smart lights: find them on your network, control them, and follow what they do.  
 Currently implementing: the [**Yeelight WiFi Light Inter-Operation Specification**](https://www.yeelight.com/download/Yeelight_Inter-Operation_Spec.pdf) (the LAN control that every light has to switch on in the Yeelight app)  
-Targets `net8.0` and `net10.0`, the LTS releases of .NET (see [Compatibility](https://tinodo.github.io/yeelightclient/#compatibility)).  
+Targets `net10.0`, the current LTS release of .NET (see [Compatibility](https://tinodo.github.io/yeelightclient/#compatibility)).  
 Our intent is to create a **complete** and **easy to use** client for Yeelight lights.  
 **Documentation, guides and the API reference: [tinodo.github.io/yeelightclient](https://tinodo.github.io/yeelightclient/)**
 
 ## Installation
 Install from the [NuGet Gallery](https://www.nuget.org/packages/YeelightClient)   
-Or through the NuGet CLI: `NuGet\Install-Package YeelightClient -Version 1.0.0-beta.1`  
-From the command line: `dotnet add package YeelightClient --version 1.0.0-beta.1`  
+Or through the NuGet CLI: `NuGet\Install-Package YeelightClient -Version 1.0.0-beta.2`  
+From the command line: `dotnet add package YeelightClient --version 1.0.0-beta.2`  
 
-**1.0.0-beta.1 is a prerelease**: it is meant to be tried, and its public API can still change before 1.0.0. A plain
+**1.0.0-beta.2 is a prerelease**: it is meant to be tried, and its public API can still change before 1.0.0. A plain
 `dotnet add package YeelightClient` installs the latest stable release, which there is none of yet, so name the version (or add `--prerelease`) to get it.
 Please report what you find in an [issue](https://github.com/tinodo/yeelightclient/issues).
 

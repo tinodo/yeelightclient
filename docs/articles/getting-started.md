@@ -7,7 +7,7 @@ title: Getting started
 This page takes you from nothing to a small program that finds a light on your network and switches it.
 
 > [!NOTE]
-> This site documents Yeelight Client **1.0.0-beta.1**, the first release, which is a prerelease: its public API can still change before 1.0.0.
+> This site documents Yeelight Client **1.0.0-beta.2**, a prerelease: its public API can still change before 1.0.0.
 > The snippets on this site assume `using Yeelight;` and the implicit usings of a .NET project (`dotnet new console` turns them on).
 
 ## What you need
@@ -19,7 +19,7 @@ This page takes you from nothing to a small program that finds a light on your n
   address directly: see [A VPN, another subnet or a guest network](discovery.md#a-vpn-another-subnet-or-a-guest-network).
 - **The light switched on at the wall.** A light that is off at the wall has no power and answers nothing. (A light that is off in the app,
   the way the protocol means it, still answers.)
-- **The .NET 8 SDK or later.** The library targets `net8.0` and `net10.0`.
+- **The .NET 10 SDK or later.** The library targets `net10.0`, the current LTS release of .NET.
 
 ## Create a project and install the package
 
@@ -30,7 +30,7 @@ dotnet add package YeelightClient --prerelease
 ```
 
 `--prerelease` is needed while 1.0 is in beta: a plain `dotnet add package YeelightClient` installs the latest stable version, and there
-is none yet. You can also name the version: `--version 1.0.0-beta.1`. The package has one dependency,
+is none yet. You can also name the version: `--version 1.0.0-beta.2`. The package has one dependency,
 `Microsoft.Extensions.Logging.Abstractions`, which comes with it.
 
 ## Find a light and switch it

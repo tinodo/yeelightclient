@@ -192,9 +192,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          dotnet-version: |
-            8.0.x
-            10.0.x
+          dotnet-version: 10.0.x
 
       - name: Restore
         run: dotnet restore YeelightClient/YeelightClient.csproj
@@ -239,9 +237,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          dotnet-version: |
-            8.0.x
-            10.0.x
+          dotnet-version: 10.0.x
 
       - name: Publish
         shell: pwsh
@@ -302,9 +298,9 @@ jobs:
           name: test-app
           path: ./assets
 
-      # The libraries are attested on their own as well: nuget.org signs the package that it serves, which changes that file but not what
-      # is in it, so whoever has the libraries from nuget.org (the NuGet cache of a restore holds them) can check them, too.
-      - name: Take the libraries out of the package
+      # The library is attested on its own as well: nuget.org signs the package that it serves, which changes that file but not what
+      # is in it, so whoever has the library from nuget.org (the NuGet cache of a restore holds it) can check it, too.
+      - name: Take the library out of the package
         run: unzip -q "assets/YeelightClient.$VERSION.nupkg" 'lib/*/YeelightClient.dll' -d libraries
 
       # What a build provenance attestation says: this workflow of this repository made these files, from this commit and ref, on a

@@ -77,13 +77,14 @@ namespace Yeelight.Tests.Unit
         }
 
         [Fact]
-        public void TheLibrary_AsksForTheOldestLoggingAbstractionsThatItCanWorkWith()
+        public void TheLibrary_AsksForTheLoggingAbstractionsOfTheDotNetReleaseThatItTargets()
         {
-            // A library that asks for a newer version makes every application that uses it update too (and breaks the restore of one that pins
-            // an older one): 8.0.0 is the oldest that has what the client uses.
+            // The first version of the .NET release that the library targets (10.0.0): NuGet restores the lowest version that is asked for, so an
+            // application that asks for nothing else gets the one that matches its runtime, and not the 8.x line that is out of support. A
+            // library that asks for a newer one makes every application that uses it update too.
             var logging = Library.GetReferencedAssemblies().Single(reference => reference.Name == "Microsoft.Extensions.Logging.Abstractions");
 
-            Assert.True(logging.Version <= new Version(8, 0, 0, 0), $"The library references Microsoft.Extensions.Logging.Abstractions {logging.Version}.");
+            Assert.Equal(new Version(10, 0, 0, 0), logging.Version);
         }
 
         [Fact]
@@ -114,9 +115,7 @@ namespace Yeelight.Tests.Unit
             var metadata = Library.GetCustomAttributes<AssemblyMetadataAttribute>().ToDictionary(attribute => attribute.Key, attribute => attribute.Value);
 
             Assert.Equal("True", metadata["IsTrimmable"]);
-#if NET10_0_OR_GREATER
             Assert.Equal("True", metadata["IsAotCompatible"]);
-#endif
         }
 
         [Fact]

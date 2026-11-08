@@ -184,7 +184,7 @@ class ComposeTests(unittest.TestCase):
         self.assertIn("gh attestation verify YeelightClient.1.0.0-RC.1.nupkg ", text)
         self.assertIn("--source-ref refs/tags/v1.0.0-RC.1\n", text)
         # NuGet keeps a package in a folder named with the lower case of its ID and of its version.
-        self.assertIn("`~/.nuget/packages/yeelightclient/1.0.0-rc.1/lib/net8.0/YeelightClient.dll`", text)
+        self.assertIn("`~/.nuget/packages/yeelightclient/1.0.0-rc.1/lib/net10.0/YeelightClient.dll`", text)
 
 
 class CommandLineTests(unittest.TestCase):

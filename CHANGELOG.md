@@ -4,6 +4,20 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project follows
 [Semantic Versioning](https://semver.org/).
 
+## [1.0.0-beta.2] - 2026-11-08
+
+A prerelease for trying out, like 1.0.0-beta.1, with one change: the library now targets .NET 10 only. Everything in 1.0.0-beta.1 (below) is in this version too. Its
+public API can still change before 1.0.0, so report what you find in an [issue](https://github.com/tinodo/yeelightclient/issues). A prerelease is not installed by a plain
+`dotnet add package YeelightClient`: use `dotnet add package YeelightClient --version 1.0.0-beta.2` (or `--prerelease` for the newest prerelease).
+
+### Changed
+
+- **The library targets `net10.0` only**, the current LTS release of .NET (supported until November 2028). `net8.0` is gone: .NET 8 reaches the end of its support on
+  10 November 2026, and a new library has no reason to carry it. An application that targets .NET 8 or .NET 9 cannot use this version; it can stay on 1.0.0-beta.1
+  (`net8.0` and `net10.0`). An application on .NET 11 or a later version uses it as it is.
+- **The package asks for `Microsoft.Extensions.Logging.Abstractions` 10.0.0**, and no longer for 8.0.0. NuGet restores the lowest version that is asked for, so an application
+  that asks for nothing else now gets the logging abstractions that match its runtime, and not the 8.x line, which is out of support from November 2026.
+
 ## [1.0.0-beta.1] - 2026-11-06
 
 The first release of Yeelight Client, a prerelease for trying out: a complete .NET client for Yeelight smart lights, with the whole of the

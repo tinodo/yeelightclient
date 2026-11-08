@@ -1,10 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <!-- .NET 10 only: the current LTS release (supported until November 2028). Older releases are not targeted: .NET 8 and 9 end their support on
+         10 November 2026, and a new library has no reason to carry them. -->
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <LangVersion>12.0</LangVersion>
     <RootNamespace>Yeelight</RootNamespace>
     <AssemblyName>YeelightClient</AssemblyName>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
@@ -22,7 +23,7 @@
          a license file as the license of a package, so the file is only packed, and not named. -->
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Copyright>Copyright (c) 2026 Tino Donderwinkel</Copyright>
-    <Version>1.0.0-beta.1</Version>
+    <Version>1.0.0-beta.2</Version>
     <PackageReleaseNotes>https://github.com/tinodo/yeelightclient/releases/tag/v$(Version)</PackageReleaseNotes>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <!-- A missing or broken XML comment on a public member is an error: the comments are the API reference of the documentation site. -->
@@ -58,9 +59,11 @@
 
   <ItemGroup>
     <!-- The client only takes an ILogger<YeelightClient>, so it needs the abstractions and not the logging system itself. The version is the
-         oldest that has what the client uses: a library that asks for a newer one makes every application that uses it update too
-         (and breaks the restore of one that pins an older one). Dependabot leaves it alone, see .github/dependabot.yml. -->
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+         first of the .NET release that the library targets (10.0.0): NuGet restores the lowest version that is asked for, so an application
+         that asks for nothing else gets the one that matches its runtime, and not the 8.x line that is out of support from November 2026.
+         A library that asks for a newer one makes every application that uses it update too (and breaks the restore of one that pins an
+         older one). Dependabot leaves it alone, see .github/dependabot.yml. -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
   </ItemGroup>
 
   <ItemGroup>

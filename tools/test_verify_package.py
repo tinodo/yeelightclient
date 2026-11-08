@@ -72,12 +72,12 @@ def png_of_kind(kind, delta=0):
 
 
 def nuspec(*dependencies, icon="icon.png", license=("expression", "MIT")):
-    items = "".join(f'<dependency id="{name}" version="8.0.0" />' for name in dependencies)
+    items = "".join(f'<dependency id="{name}" version="10.0.0" />' for name in dependencies)
     icon_element = f"<icon>{icon}</icon>" if icon else ""
     license_element = f'<license type="{license[0]}">{license[1]}</license>' if license else ""
     return (
         '<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd"><metadata><id>YeelightClient</id>'
-        f"{icon_element}{license_element}<dependencies><group targetFramework=\"net8.0\">{items}</group></dependencies></metadata></package>"
+        f"{icon_element}{license_element}<dependencies><group targetFramework=\"net10.0\">{items}</group></dependencies></metadata></package>"
     ).encode()
 
 
@@ -88,18 +88,15 @@ def package_files(**changes):
         "README.md": b"# Yeelight Client",
         "LICENSE": b"MIT",
         "icon.png": png(),
+        "lib/net10.0/YeelightClient.dll": b"MZ",
+        "lib/net10.0/YeelightClient.xml": b"<doc/>",
     }
-    for framework in ("net8.0", "net10.0"):
-        files[f"lib/{framework}/YeelightClient.dll"] = b"MZ"
-        files[f"lib/{framework}/YeelightClient.xml"] = b"<doc/>"
     files.update(changes)
     return {name: content for name, content in files.items() if content is not None}
 
 
 def symbol_files(**changes):
-    files = {**PLUMBING, "YeelightClient.nuspec": nuspec()}
-    for framework in ("net8.0", "net10.0"):
-        files[f"lib/{framework}/YeelightClient.pdb"] = b"BSJB" + SOURCE_LINK
+    files = {**PLUMBING, "YeelightClient.nuspec": nuspec(), "lib/net10.0/YeelightClient.pdb": b"BSJB" + SOURCE_LINK}
     files.update(changes)
     return {name: content for name, content in files.items() if content is not None}
 
@@ -570,10 +567,10 @@ class VerifyPackageTests(unittest.TestCase):
         self.assertIn("the nuspec does not declare the license of the package as the MIT expression", output)
 
     def test_a_pdb_in_the_package_is_refused(self):
-        code, output = self.verify(packages=package_files(**{"lib/net8.0/YeelightClient.pdb": b"BSJB"}), symbols=symbol_files())
+        code, output = self.verify(packages=package_files(**{"lib/net10.0/YeelightClient.pdb": b"BSJB"}), symbols=symbol_files())
 
         self.assertEqual(1, code)
-        self.assertIn("unexpected file in the package: lib/net8.0/YeelightClient.pdb", output)
+        self.assertIn("unexpected file in the package: lib/net10.0/YeelightClient.pdb", output)
 
     def test_a_file_that_is_not_the_library_is_refused(self):
         code, output = self.verify(packages=package_files(**{"contentFiles/data.json": b"{}"}), symbols=symbol_files())
@@ -590,6 +587,21 @@ class VerifyPackageTests(unittest.TestCase):
         self.assertEqual(1, code)
         self.assertIn("lib/net10.0/YeelightClient.dll is missing", output)
         self.assertIn("unexpected target framework in the package: net9.0", output)
+
+    def test_the_library_is_for_net10_only_so_a_package_that_still_has_net8_is_refused(self):
+        code, output = self.verify(
+            packages=package_files(**{"lib/net8.0/YeelightClient.dll": b"MZ", "lib/net8.0/YeelightClient.xml": b"<doc/>"}),
+            symbols=symbol_files(),
+        )
+
+        self.assertEqual(1, code)
+        self.assertIn("unexpected target framework in the package: net8.0", output)
+
+    def test_a_package_for_net10_only_is_accepted(self):
+        code, output = self.verify(packages=package_files(), symbols=symbol_files())
+
+        self.assertEqual(0, code, output)
+        self.assertNotIn("net8.0", output)
 
     def test_a_new_dependency_is_refused(self):
         code, output = self.verify(
@@ -609,22 +621,28 @@ class VerifyPackageTests(unittest.TestCase):
     def test_source_link_to_another_repository_is_refused(self):
         other = SOURCE_LINK.replace(b"tinodo/yeelightclient", b"someone/else")
 
-        code, output = self.verify(symbols=symbol_files(**{"lib/net8.0/YeelightClient.pdb": b"BSJB" + other}))
+        code, output = self.verify(symbols=symbol_files(**{"lib/net10.0/YeelightClient.pdb": b"BSJB" + other}))
 
         self.assertEqual(1, code)
-        self.assertIn("lib/net8.0/YeelightClient.pdb has no Source Link", output)
+        self.assertIn("lib/net10.0/YeelightClient.pdb has no Source Link", output)
 
     def test_symbols_that_miss_a_target_framework_are_refused(self):
-        code, output = self.verify(symbols=symbol_files(**{"lib/net8.0/YeelightClient.pdb": None}))
+        code, output = self.verify(symbols=symbol_files(**{"lib/net10.0/YeelightClient.pdb": None}))
 
         self.assertEqual(1, code)
-        self.assertIn("lib/net8.0/YeelightClient.pdb is missing", output)
+        self.assertIn("lib/net10.0/YeelightClient.pdb is missing", output)
+
+    def test_symbols_of_net8_are_refused(self):
+        code, output = self.verify(symbols=symbol_files(**{"lib/net8.0/YeelightClient.pdb": b"BSJB" + SOURCE_LINK}))
+
+        self.assertEqual(1, code)
+        self.assertIn("unexpected target framework in the symbol package: net8.0", output)
 
     def test_an_assembly_in_the_symbols_is_refused(self):
-        code, output = self.verify(symbols=symbol_files(**{"lib/net8.0/YeelightClient.dll": b"MZ"}))
+        code, output = self.verify(symbols=symbol_files(**{"lib/net10.0/YeelightClient.dll": b"MZ"}))
 
         self.assertEqual(1, code)
-        self.assertIn("unexpected file in the symbol package: lib/net8.0/YeelightClient.dll", output)
+        self.assertIn("unexpected file in the symbol package: lib/net10.0/YeelightClient.dll", output)
 
     def test_a_symbol_package_that_is_named_is_verified_too_and_only_once(self):
         package = self.write("YeelightClient.1.0.0.nupkg", package_files())
@@ -639,7 +657,7 @@ class VerifyPackageTests(unittest.TestCase):
 
     def test_a_fork_verifies_symbols_that_point_at_itself(self):
         fork = SOURCE_LINK.replace(b"tinodo/yeelightclient", b"someone/else")
-        symbols = symbol_files(**{"lib/net8.0/YeelightClient.pdb": b"BSJB" + fork, "lib/net10.0/YeelightClient.pdb": b"BSJB" + fork})
+        symbols = symbol_files(**{"lib/net10.0/YeelightClient.pdb": b"BSJB" + fork})
 
         accepted_code, accepted = self.verify(symbols=symbols, options=["--repository", "someone/else"])
         refused_code, refused = self.verify(symbols=symbols, options=["--repository", "tinodo/yeelightclient"])
@@ -650,7 +668,7 @@ class VerifyPackageTests(unittest.TestCase):
 
     def test_the_repository_is_the_one_of_github_actions_unless_one_is_named(self):
         fork = SOURCE_LINK.replace(b"tinodo/yeelightclient", b"someone/else")
-        symbols = symbol_files(**{"lib/net8.0/YeelightClient.pdb": b"BSJB" + fork, "lib/net10.0/YeelightClient.pdb": b"BSJB" + fork})
+        symbols = symbol_files(**{"lib/net10.0/YeelightClient.pdb": b"BSJB" + fork})
 
         with mock.patch.dict(os.environ, {"GITHUB_REPOSITORY": "someone/else"}):
             from_the_environment, _ = self.verify(symbols=symbols, options=[])

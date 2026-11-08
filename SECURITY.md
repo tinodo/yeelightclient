@@ -43,16 +43,16 @@ in scope. A weakness of the protocol itself, or of the firmware of a light, is f
 
 The package and the test app of every release are built by the `publish.yml` workflow of this repository, on GitHub-hosted runners, and
 have a signed [build provenance attestation](https://docs.github.com/en/actions/concepts/security/artifact-attestations): GitHub's
-statement of which workflow built the file, from which commit. The libraries inside the package have one as well. Check a file you
+statement of which workflow built the file, from which commit. The library inside the package has one as well. Check a file you
 downloaded from a [release](https://github.com/tinodo/yeelightclient/releases) with the [GitHub CLI](https://cli.github.com/):
 
 ```shell
-gh attestation verify YeelightClient.1.0.0-beta.1.nupkg --repo tinodo/yeelightclient --signer-workflow tinodo/yeelightclient/.github/workflows/publish.yml --source-ref refs/tags/v1.0.0-beta.1
+gh attestation verify YeelightClient.1.0.0-beta.2.nupkg --repo tinodo/yeelightclient --signer-workflow tinodo/yeelightclient/.github/workflows/publish.yml --source-ref refs/tags/v1.0.0-beta.2
 ```
 
 nuget.org signs the package that it serves, so the `.nupkg` that a restore downloads from nuget.org is not byte for byte the file of
-the release page, and does not verify. The libraries in it are the same, so run the command on
-`~/.nuget/packages/yeelightclient/<version>/lib/net8.0/YeelightClient.dll` (or `net10.0`) to check the library that your application loads.
+the release page, and does not verify. The library in it is the same, so run the command on
+`~/.nuget/packages/yeelightclient/<version>/lib/net10.0/YeelightClient.dll` to check the library that your application loads.
 The notes of every release repeat this with its version. The attestation is also an asset of the release, `YeelightClient.<version>.intoto.jsonl`
-(a Sigstore bundle, one attestation for all the files): add `--bundle YeelightClient.1.0.0-beta.1.intoto.jsonl` to the command and it checks the file
+(a Sigstore bundle, one attestation for all the files): add `--bundle YeelightClient.1.0.0-beta.2.intoto.jsonl` to the command and it checks the file
 against that one, without asking GitHub for the attestation (it still fetches the keys that check the signature).

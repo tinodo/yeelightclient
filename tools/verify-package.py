@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Verifies that the YeelightClient NuGet package is exactly one thing: the library.
 
-The package may hold the assembly (and its XML documentation) for each target framework, the README, the license and the icon, and
+The package may hold the assembly (and its XML documentation) of the one target framework of the library, net10.0, the README, the license and the icon, and
 nothing else. In particular there must be no JSON or other data files, no analyzer or source generator, no build targets and no content
 files. The package also must not take on a new runtime dependency unless somebody decides that on purpose. The icon has to be a PNG
 that nuget.org accepts (at most 1 MB, and at least the 128 by 128 pixels that NuGet recommends) and a whole one: the checksums of its
@@ -37,7 +37,7 @@ import zlib
 
 ASSEMBLY_NAME = "YeelightClient"
 DEFAULT_REPOSITORY = "tinodo/yeelightclient"
-REQUIRED_FRAMEWORKS = {"net8.0", "net10.0"}
+REQUIRED_FRAMEWORKS = {"net10.0"}  # the one target framework of the library: .NET 10, the current LTS release (a package for another one is refused)
 ALLOWED_DEPENDENCIES = {"Microsoft.Extensions.Logging.Abstractions"}
 
 ICON_NAME = "icon.png"

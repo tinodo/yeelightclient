@@ -3,8 +3,8 @@
 
 coverage_summary.py REPORT... [--package YeelightClient] [--floor FILE] [--summary FILE] [--top N]
 
-Each REPORT is a Cobertura file, or a pattern for several ("TestResults/**/coverage.cobertura.xml"): the reports of the target frameworks of
-one test run. They are merged: a line is hit when any of them hit it. Only the assembly of the library is counted.
+Each REPORT is a Cobertura file, or a pattern for several ("TestResults/**/coverage.cobertura.xml"): the reports of one test run. They are merged: a
+line is hit when any of them hit it. Only the assembly of the library is counted.
 
 --floor FILE    A JSON file with the least coverage of the library, in percent: {"lines": 80.0, "branches": 70.0}. The run fails
                 (exit code 1) below either of them.
@@ -82,7 +82,7 @@ def read(paths, package):
             # A file is in several classes (partial classes, the state machines of async methods, lambdas): a line is reached when any of
             # them reached it. The branches are not merged by line: two classes can have a decision of their own on the same line (a
             # conditional, and a lambda that is written on it), so they are kept by class, and summed. The same class in another report
-            # (the other target framework) is the same decisions again: the most that either reached.
+            # (of the same run) is the same decisions again: the most that either reached.
             for item in candidate.iter("class"):
                 name = normalize(item.get("filename", ""))
                 owner = item.get("name", "")

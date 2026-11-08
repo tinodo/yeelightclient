@@ -46,9 +46,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          dotnet-version: |
-            8.0.x
-            10.0.x
+          dotnet-version: 10.0.x
 
       - name: Restore
         run: dotnet restore YeelightClient.Tests/YeelightClient.Tests.csproj
@@ -99,9 +97,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          dotnet-version: |
-            8.0.x
-            10.0.x
+          dotnet-version: 10.0.x
 
       - name: Restore
         run: dotnet restore YeelightClient/YeelightClient.csproj
@@ -113,12 +109,12 @@ jobs:
         run: dotnet pack YeelightClient/YeelightClient.csproj --configuration Release --no-build --output ./artifacts
 
       # The package has to stay one thing: the library, its XML documentation, the README, the license and the icon. Nothing else is shipped:
-      # no data files, no analyzers, no build targets. Its symbol package (the .snupkg next to it) is verified with it: the PDB of each
+      # no data files, no analyzers, no build targets. Its symbol package (the .snupkg next to it) is verified with it: the PDB of the
       # target framework, with Source Link.
       - name: Verify the package is a single assembly, with its symbols
         run: python3 tools/verify-package.py ./artifacts/*.nupkg
 
-      # What a consumer does: the sample is built against the package that was just packed, for both of its target frameworks, with that
+      # What a consumer does: the sample is built against the package that was just packed, with that
       # folder as the only source (what the package needs is in the NuGet cache since the library was restored). Contents that are right
       # can still make a package that cannot be used; this is what shows it.
       - name: Build the sample against the package
@@ -148,9 +144,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          dotnet-version: |
-            8.0.x
-            10.0.x
+          dotnet-version: 10.0.x
 
       - name: Publish
         run: >

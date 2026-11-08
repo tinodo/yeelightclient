@@ -20,7 +20,7 @@ Thanks for your interest in improving Yeelight Client, a .NET client for Yeeligh
 
 ## Development setup
 
-- .NET SDK 8.0 and 10.0 (the library multi-targets both; see `YeelightClient/YeelightClient.csproj`).
+- The .NET 10 SDK (the library targets `net10.0` only; see `YeelightClient/YeelightClient.csproj`).
 - `dotnet test YeelightClient.Tests/YeelightClient.Tests.csproj` restores and builds the library and runs the tests. It works on
   Windows, Linux and macOS, and is what CI runs on each of them.
 - CI also measures what the tests reach of the library (`--collect:"XPlat Code Coverage"`), and `tools/coverage_summary.py` puts it in the
@@ -35,7 +35,7 @@ Thanks for your interest in improving Yeelight Client, a .NET client for Yeeligh
   Windows and the .NET 10 SDK; on Linux and macOS it fails with NETSDK1100. CI builds the test app on its own Windows job.
 - `samples/ConsoleSample` is a small program that uses the library (`dotnet run --project samples/ConsoleSample`, which searches the networks of
   the computer, or `dotnet run --project samples/ConsoleSample -- 192.168.1.50` to ask one address). CI also builds it against the package that was just
-  packed, for both target frameworks, the way a consumer of the package does: that is what shows that the package can be used.
+  packed, the way a consumer of the package does: that is what shows that the package can be used.
 - The icon of the package, `YeelightClient/icon.png`, is drawn by `python tools/make-icon.py` (it needs Pillow) from the same drawing as the logo of
   the site, `docs/images/logo.svg`: change them together. `tools/verify-package.py` checks that the package has it, and that it is a PNG that
   nuget.org accepts: a whole file (the checksums of its chunks, chunks in the order, the number and the size that PNG asks for, a valid header, palette
@@ -131,7 +131,7 @@ The site at <https://tinodo.github.io/yeelightclient/> is built with [DocFX](htt
 | `docs/template/public/` | The theme: `main.css` and `main.js`, on top of the modern template of DocFX. |
 | `CHANGELOG.md` | Copied to the site as its changelog page (the copy, `docs/changelog.md`, is not committed). |
 
-Build it, and look at it, on any platform with the .NET SDKs (8.0 and 10.0) and Python 3:
+Build it, and look at it, on any platform with the .NET 10 SDK and Python 3:
 
 ```shell
 python tools/docs/build.py --serve     # builds docs/_site, checks its links, and serves it at http://localhost:8080
@@ -205,9 +205,10 @@ waits for it for up to three minutes), and a check that waits for a service shou
 before you merge a pull request that it failed.
 
 The one dependency of the library, `Microsoft.Extensions.Logging.Abstractions`, is part of what its users get with it, so it is asked for at
-the oldest version that has what the library uses (8.0.0): a library that asks for a newer one makes every application that uses it
-update too. No version update is proposed for it, whatever the version (a security update still is, see `.github/dependabot.yml`);
-raise it by hand when the library needs something that a newer version has.
+the first version of the .NET release that the library targets (10.0.0). NuGet restores the lowest version that is asked for, so an application
+that asks for nothing else gets the one that matches its runtime (and not the 8.x line, which is out of support from November 2026). A library
+that asks for a newer one makes every application that uses it update too. No version update is proposed for it, whatever the version
+(a security update still is, see `.github/dependabot.yml`); raise it by hand when the library needs something that a newer version has.
 
 **Markdig is held at the version that nuget.org runs.** `ReadmeTests` (in `YeelightClient.Tests`) parse the README the way nuget.org does, so the
 Markdig that they use has to be the one of nuget.org, and that is not the newest: `Markdig.Signed` 0.37.0 in the `Directory.Packages.props` of
@@ -309,7 +310,7 @@ its turn: cancel it before you start over.
 prerelease, which `dotnet add package YeelightClient` and the NuGet UI skip unless they are asked to include prereleases, so what people
 get by default stays the latest stable version. A version cannot be reused: a fixed beta is `1.0.0-beta.2`, and the stable release is `1.0.0`.
 
-**Symbols.** Next to the package the workflow builds `YeelightClient.X.Y.Z.snupkg`: the debug symbols (PDB) of each target framework, with
+**Symbols.** Next to the package the workflow builds `YeelightClient.X.Y.Z.snupkg`: the debug symbols (PDB) of the library, with
 [Source Link](https://learn.microsoft.com/dotnet/standard/library-guidance/sourcelink), so that a debugger can step into the library and
 show the source of the commit that was built. nuget.org serves them from its symbol server (Visual Studio: *Tools, Options, Debugging,
 Symbols*, tick *NuGet.org Symbol Server*). `tools/verify-package.py` makes sure that the symbol package is there, that it holds nothing
@@ -318,7 +319,7 @@ listed, and a failure to push them is a warning, not a failed release.
 
 **Build provenance.** The *Prepare the release* job makes a signed
 [build provenance attestation](https://docs.github.com/en/actions/concepts/security/artifact-attestations) (`actions/attest`) for the
-package, its symbols, the test app and the two libraries in the package (`lib/net8.0/YeelightClient.dll`, `lib/net10.0/YeelightClient.dll`), and
+package, its symbols, the test app and the library in the package (`lib/net10.0/YeelightClient.dll`), and
 then checks each of them with `gh attestation verify`, before anything waits for your approval. An attestation is GitHub's statement
 that this workflow of this repository made a file, from this commit and ref, on a GitHub-hosted runner. It is signed with a certificate
 that Sigstore issues for that one run, and kept with the repository (and, as the repository is public, in a public transparency log). It
@@ -340,7 +341,7 @@ can be checked from the release alone.
 first job refuses the other way round, each), so the ref of an attestation says which of the two made the files, and the command above,
 which asks for a tag, never accepts the files of a dry run. nuget.org signs the package that it serves,
 which changes that file and not what is in it: the `.nupkg` from nuget.org does not verify (the one on the release page does), and the
-libraries in it do. After a restore, the same command on `~/.nuget/packages/yeelightclient/X.Y.Z/lib/net8.0/YeelightClient.dll` checks the library
+library in it does. After a restore, the same command on `~/.nuget/packages/yeelightclient/X.Y.Z/lib/net10.0/YeelightClient.dll` checks the library
 that runs.
 
 ### When it fails

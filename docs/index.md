@@ -7,7 +7,7 @@ _description: A complete cross-platform .NET client for Yeelight smart lights ov
 <div class="oc-hero">
 <div class="oc-hero-text">
 
-<p class="oc-eyebrow">Yeelight LAN protocol &middot; .NET 8 and 10</p>
+<p class="oc-eyebrow">Yeelight LAN protocol &middot; .NET 10</p>
 
 # A complete .NET client for Yeelight lights
 
@@ -53,7 +53,7 @@ foreach (var light in lights)
 <div class="oc-banner">
 <i class="bi bi-info-circle"></i>
 <div>
-<strong>1.0 is in beta.</strong> This site documents Yeelight Client 1.0.0-beta.1, the first release. It is for trying out: the public API can
+<strong>1.0 is in beta.</strong> This site documents Yeelight Client 1.0.0-beta.2. It is for trying out: the public API can
 still change before 1.0.0. Install it with <code style="white-space: nowrap">--prerelease</code>, and please report what you find in an
 <a href="https://github.com/tinodo/yeelightclient/issues">issue</a>.
 </div>
@@ -181,9 +181,9 @@ for (var hue = 0; hue < 360; hue += 6)
 | Area | Support |
 | --- | --- |
 | **Lights** | Yeelight WiFi lights that follow the [Yeelight WiFi Light Inter-Operation Specification](https://www.yeelight.com/download/Yeelight_Inter-Operation_Spec.pdf), with **LAN Control** switched on in the Yeelight app (select the light, settings, LAN Control). What a light can do is what it lists: a mono light has no colours, and only some ceiling lights have a background light. |
-| **Target frameworks** | `net8.0` and `net10.0`, the LTS releases of .NET. An application on .NET 9, or on a later version, uses them too. |
+| **Target frameworks** | `net10.0`, the current LTS release of .NET (supported until November 2028). An application on .NET 11 or a later version uses it too. Earlier versions of .NET are not supported. |
 | **Platforms** | Windows, Linux and macOS: the client only uses sockets, and its tests run on all three in CI. |
-| **Dependencies** | `Microsoft.Extensions.Logging.Abstractions` 8.0.0, which has the `ILogger` that the client logs to. |
+| **Dependencies** | `Microsoft.Extensions.Logging.Abstractions` 10.0.0, which has the `ILogger` that the client logs to. |
 | **License** | [MIT](https://github.com/tinodo/yeelightclient/blob/main/LICENSE) |
 | **Affiliation** | Yeelight Client is an independent open source project. It is not affiliated with or endorsed by Yeelight. |
 

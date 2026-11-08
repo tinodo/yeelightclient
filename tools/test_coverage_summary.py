@@ -57,10 +57,10 @@ class ReadTests(CoverageTestCase):
         return coverage_summary.read(paths, package)
 
     def test_a_line_is_hit_when_any_of_the_reports_hit_it(self):
-        net8 = report([("Client.cs", [line(1, 0), line(2, 3)])])
-        net10 = report([("Client.cs", [line(1, 5), line(2, 0)])])
+        first = report([("Client.cs", [line(1, 0), line(2, 3)])])
+        second = report([("Client.cs", [line(1, 5), line(2, 0)])])
 
-        lines, _ = self.read(net8, net10)
+        lines, _ = self.read(first, second)
 
         self.assertEqual({1: 5, 2: 3}, lines["Client.cs"])
 
@@ -73,10 +73,10 @@ class ReadTests(CoverageTestCase):
         self.assertEqual({1: 0, 2: 1, 3: 0}, lines["Client.cs"])
 
     def test_the_branches_of_a_line_are_the_most_that_a_report_reached_and_the_most_that_it_has(self):
-        net8 = report([("Client.cs", [line(1, 1, "50% (1/2)")])])
-        net10 = report([("Client.cs", [line(1, 1, "100% (2/2)")])])
+        first = report([("Client.cs", [line(1, 1, "50% (1/2)")])])
+        second = report([("Client.cs", [line(1, 1, "100% (2/2)")])])
 
-        _, branches = self.read(net8, net10)
+        _, branches = self.read(first, second)
 
         self.assertEqual({1: {"C0": (2, 2)}}, {number: dict(owners) for number, owners in branches["Client.cs"].items()})
 

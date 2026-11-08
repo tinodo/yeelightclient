@@ -372,8 +372,23 @@ namespace Yeelight
         private static TaskCompletionSource NewWake() => new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         /// <summary>
-        /// The socket of the connection takes both IPv4 and IPv6, and says an IPv4 address as <c>::ffff:192.168.1.5</c>: that is not an address
-        /// that a light, or a listener for a light, can use.
+        /// The socket for a connection to <paramref name="host"/>. A light is an IPv4 device (the library only believes the IPv4 addresses of a
+        /// local network, and searches and listens on IPv4 only), so a light that is given by its address gets an IPv4 socket. The socket that
+        /// <see cref="TcpClient"/> makes by default takes both IPv4 and IPv6, and connects to an IPv4 address through its IPv6 side: on a computer
+        /// with software that watches IPv6 that takes about ten times as long as it does with an IPv4 socket (25 milliseconds against 2 for a
+        /// connection to the same computer, and more with several at once). A host that is not an IPv4 address (a name) keeps the socket that
+        /// takes both, which uses the family that the name resolves to.
+        /// </summary>
+        internal static TcpClient CreateClient(string host)
+        {
+            return IPAddress.TryParse(host, out var address) && address.AddressFamily == AddressFamily.InterNetwork
+                ? new TcpClient(AddressFamily.InterNetwork) { NoDelay = true }
+                : new TcpClient { NoDelay = true };
+        }
+
+        /// <summary>
+        /// A socket that takes both IPv4 and IPv6 (the one of a host that is a name) says an IPv4 address as <c>::ffff:192.168.1.5</c>: that is
+        /// not an address that a light, or a listener for a light, can use.
         /// </summary>
         private static IPAddress? Unmap(IPAddress? address)
         {
@@ -438,7 +453,7 @@ namespace Yeelight
                 TcpClient? client = null;
                 try
                 {
-                    client = new TcpClient { NoDelay = true };
+                    client = CreateClient(host);
                     EnableKeepAlive(client.Client);
                     using (var connect = CancellationTokenSource.CreateLinkedTokenSource(session.Token))
                     {

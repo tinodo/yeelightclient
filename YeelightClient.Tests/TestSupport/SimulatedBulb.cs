@@ -1007,7 +1007,9 @@ namespace Yeelight.Tests.TestSupport
         {
             try
             {
-                var tcp = new TcpClient();
+                // A light is an IPv4 device: an IPv4 socket, which does not go through the IPv6 side of a socket that takes both (slow on computers
+                // with software that watches IPv6, see YeelightConnection.CreateClient).
+                var tcp = new TcpClient(AddressFamily.InterNetwork);
                 await tcp.ConnectAsync(target, this._stop.Token).ConfigureAwait(false);
                 var client = new Client(tcp, music: true);
                 lock (this._gate)

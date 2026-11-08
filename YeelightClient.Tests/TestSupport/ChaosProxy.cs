@@ -194,7 +194,8 @@ namespace Yeelight.Tests.TestSupport
             try
             {
                 client.NoDelay = true;
-                server = new TcpClient { NoDelay = true };
+                // The server is a light, an IPv4 device: an IPv4 socket (see YeelightConnection.CreateClient).
+                server = new TcpClient(AddressFamily.InterNetwork) { NoDelay = true };
                 await server.ConnectAsync(this._host, this._port, this._stopped.Token).ConfigureAwait(false);
             }
             catch (Exception)

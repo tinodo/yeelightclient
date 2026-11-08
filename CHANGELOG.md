@@ -17,6 +17,9 @@ public API can still change before 1.0.0, so report what you find in an [issue](
   (`net8.0` and `net10.0`). An application on .NET 11 or a later version uses it as it is.
 - **The package asks for `Microsoft.Extensions.Logging.Abstractions` 10.0.0**, and no longer for 8.0.0. NuGet restores the lowest version that is asked for, so an application
   that asks for nothing else now gets the logging abstractions that match its runtime, and not the 8.x line, which is out of support from November 2026.
+- **The connection to a light uses an IPv4 socket** when the light is given by its address. A light is an IPv4 device (the client already only believed, searched and
+  listened on IPv4), and the socket that .NET makes by default takes both IPv4 and IPv6 and connects to an IPv4 address through its IPv6 side: on a computer with software that
+  watches IPv6 that takes about ten times as long (25 ms against 2 ms for a connection to the same computer on one, and more with several at once).
 
 ## [1.0.0-beta.1] - 2026-11-06
 

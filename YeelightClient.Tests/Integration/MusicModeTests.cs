@@ -38,7 +38,7 @@ namespace Yeelight.Tests.Integration
         {
             for (var attempt = 0; attempt < 30; attempt++)
             {
-                using var client = new TcpClient();
+                using var client = new TcpClient(AddressFamily.InterNetwork);
                 try
                 {
                     await client.ConnectAsync(IPAddress.Loopback, port);
@@ -156,7 +156,7 @@ namespace Yeelight.Tests.Integration
             Assert.False(starting.IsCompleted, "The session was made with the connection of a computer that is not the light.");
 
             // The light connects: its connection is the one that is taken.
-            using var light = new TcpClient();
+            using var light = new TcpClient(AddressFamily.InterNetwork);
             await light.ConnectAsync(IPAddress.Loopback, port);
             await using var session = await starting.WithTimeoutAsync("the session to be made when the light connected");
             await session.SetBrightnessAsync(55);

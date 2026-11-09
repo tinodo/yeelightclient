@@ -4,7 +4,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project follows
 [Semantic Versioning](https://semver.org/).
 
-## [1.0.0-beta.2] - 2026-11-08
+## [1.0.0-beta.2] - 2026-11-09
 
 A prerelease for trying out, like 1.0.0-beta.1, with one change: the library now targets .NET 10 only. Everything in 1.0.0-beta.1 (below) is in this version too. Its
 public API can still change before 1.0.0, so report what you find in an [issue](https://github.com/tinodo/yeelightclient/issues). A prerelease is not installed by a plain
